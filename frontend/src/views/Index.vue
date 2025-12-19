@@ -86,12 +86,6 @@ import { useI18n } from 'vue-i18n'
 import { useCryptoMarket } from '@/composables/useCryptoMarket'
 import { CRYPTO_LIST, ICON_PATHS } from '@/utils/constants'
 import { useWalletStore } from '@/stores/wallet'
-import { isDAppBrowser, detectWalletType } from '@/utils/wallet'
-import { 
-  hasValidSignatureAuthCache, 
-  ensureTokenPocketSignatureAuth,
-  clearSignatureAuthCache
-} from '@/utils/signatureAuth'
 import SignatureAuthPopup from '@/components/SignatureAuthPopup.vue'
 import { ElMessage } from 'element-plus'
 
@@ -104,172 +98,201 @@ const signatureLoading = ref(false)
 const requiresSignature = ref(false)  // Whether user needs to sign (in DApp browser)
 const isAuthenticated = ref(false)    // Whether user has completed signature today
 const authError = ref('')             // Error message for failed auth
+const connectedWallet = ref('')       // Connected wallet address
 
-// Storage key for daily signature check
-const DAILY_SIGNATURE_KEY = 'daily_signature_date'
+// Storage keys
+const SIGNATURE_TIMESTAMP_KEY = 'wallet_signature_timestamp'
+const SIGNATURE_WALLET_KEY = 'wallet_signature_address'
+
+// 24 hours in milliseconds
+const SIGNATURE_VALIDITY_MS = 24 * 60 * 60 * 1000
 
 /**
- * Check if user is in DApp browser environment
- * Returns true if ethereum object exists (TokenPocket, MetaMask, etc.)
+ * Check if ethereum wallet is available (TokenPocket, MetaMask, etc.)
  */
-const isInDAppBrowser = () => {
-  // Direct check for window.ethereum - most reliable method
-  const hasEthereum = typeof window !== 'undefined' && !!window.ethereum
-  console.log('[Index] DApp browser check:', { 
-    hasEthereum, 
-    isTokenPocket: window.ethereum?.isTokenPocket,
-    isMetaMask: window.ethereum?.isMetaMask 
-  })
-  return hasEthereum
+const hasWalletProvider = () => {
+  return typeof window !== 'undefined' && !!window.ethereum
 }
 
 /**
- * Check if user needs to sign today
- * Returns true if signature is needed
+ * Check if signature is still valid (within 24 hours)
  */
-const needsDailySignature = () => {
-  // Only require signature in DApp browser
-  if (!isInDAppBrowser()) {
-    console.log('[Index] Not in DApp browser, skipping signature check')
-    return false
-  }
-
-  // Get today's date string (YYYY-MM-DD)
-  const today = new Date().toISOString().split('T')[0]
-  const lastSignatureDate = localStorage.getItem(DAILY_SIGNATURE_KEY)
+const isSignatureValid = (walletAddress) => {
+  const savedTimestamp = localStorage.getItem(SIGNATURE_TIMESTAMP_KEY)
+  const savedWallet = localStorage.getItem(SIGNATURE_WALLET_KEY)
   
-  console.log('[Index] Daily signature check:', { today, lastSignatureDate })
-  
-  // If already signed today, no need to sign again
-  if (lastSignatureDate === today) {
-    console.log('[Index] Already signed today, skipping')
+  if (!savedTimestamp || !savedWallet) {
+    console.log('[Signature] No saved signature found')
     return false
   }
   
-  // Check if has valid cached token for current wallet
-  const walletAddress = walletStore.walletAddress
-  if (hasValidSignatureAuthCache({ walletAddress })) {
-    // Has valid cache but check date
-    console.log('[Index] Has valid cache but checking daily requirement')
+  // Check if wallet matches
+  if (savedWallet.toLowerCase() !== walletAddress.toLowerCase()) {
+    console.log('[Signature] Wallet address mismatch')
+    return false
   }
   
+  // Check if within 24 hours
+  const timestamp = parseInt(savedTimestamp, 10)
+  const now = Date.now()
+  const elapsed = now - timestamp
+  
+  if (elapsed > SIGNATURE_VALIDITY_MS) {
+    console.log('[Signature] Signature expired, elapsed:', elapsed / 1000 / 60 / 60, 'hours')
+    return false
+  }
+  
+  console.log('[Signature] Signature still valid, remaining:', (SIGNATURE_VALIDITY_MS - elapsed) / 1000 / 60 / 60, 'hours')
   return true
 }
 
 /**
+ * Save signature timestamp
+ */
+const saveSignatureTimestamp = (walletAddress) => {
+  localStorage.setItem(SIGNATURE_TIMESTAMP_KEY, String(Date.now()))
+  localStorage.setItem(SIGNATURE_WALLET_KEY, walletAddress.toLowerCase())
+}
+
+/**
+ * Connect wallet and get account address
+ */
+const connectWalletAndGetAddress = async () => {
+  if (!window.ethereum) {
+    throw new Error('请在钱包浏览器中打开')
+  }
+  
+  // Request wallet connection - this will prompt user to connect
+  const accounts = await window.ethereum.request({ 
+    method: 'eth_requestAccounts' 
+  })
+  
+  if (!accounts || accounts.length === 0) {
+    throw new Error('未获取到钱包地址')
+  }
+  
+  return accounts[0]
+}
+
+/**
+ * Request personal signature from wallet
+ * This will trigger wallet's native signature popup (requires password)
+ */
+const requestSignature = async (walletAddress) => {
+  if (!window.ethereum) {
+    throw new Error('请在钱包浏览器中打开')
+  }
+  
+  // Create signature message with timestamp for uniqueness
+  const timestamp = Date.now()
+  const message = `VituFinance 安全验证\n\n钱包地址: ${walletAddress}\n时间戳: ${timestamp}\n\n此签名仅用于验证钱包所有权，不会转移任何资产。`
+  
+  console.log('[Signature] Requesting signature for message:', message)
+  
+  // Request personal_sign - this triggers wallet password prompt
+  const signature = await window.ethereum.request({
+    method: 'personal_sign',
+    params: [message, walletAddress]
+  })
+  
+  console.log('[Signature] Signature obtained:', signature.substring(0, 20) + '...')
+  return signature
+}
+
+/**
  * Handle signature confirmation - MUST complete to access page
- * Will trigger wallet's native signature popup (requires wallet password)
  */
 const handleSignatureConfirm = async () => {
   signatureLoading.value = true
   authError.value = ''
   
-  console.log('[Index] Starting wallet signature process...')
-  
   try {
-    // This will trigger wallet's native signature popup
-    // User needs to enter wallet password to complete signature
-    const result = await ensureTokenPocketSignatureAuth({ force: true })
+    console.log('[Signature] Starting signature process...')
     
-    console.log('[Index] Signature result:', result)
+    // Step 1: Connect wallet and get address
+    const walletAddress = await connectWalletAndGetAddress()
+    console.log('[Signature] Wallet connected:', walletAddress)
+    connectedWallet.value = walletAddress
     
-    if (result.success) {
-      // Save current timestamp (for precise 24-hour check)
-      const now = Date.now()
-      localStorage.setItem(DAILY_SIGNATURE_KEY, String(now))
-      
-      // Mark as authenticated - allow access to page
-      isAuthenticated.value = true
-      showSignaturePopup.value = false
-      
-      console.log('[Index] ✅ Signature successful, access granted')
-      ElMessage.success(t('signatureAuthPopup.success') || '签名认证成功')
-    } else if (result.skipped) {
-      // Wallet detection issue - show specific error
-      console.log('[Index] Signature skipped:', result.reason)
-      authError.value = '请在钱包浏览器中打开本网站'
-    } else if (result.error) {
-      // Show error but keep blocking
-      console.log('[Index] Signature error:', result.error)
-      authError.value = result.error
-      ElMessage.error(result.error)
-    }
+    // Update wallet store
+    walletStore.setWallet(walletAddress, 'TokenPocket')
+    
+    // Step 2: Request signature (triggers wallet password popup)
+    await requestSignature(walletAddress)
+    
+    // Step 3: Save timestamp and grant access
+    saveSignatureTimestamp(walletAddress)
+    isAuthenticated.value = true
+    
+    console.log('[Signature] ✅ Authentication successful')
+    ElMessage.success(t('signatureAuthPopup.success') || '签名认证成功')
+    
   } catch (error) {
-    console.error('[Index] Signature auth failed:', error)
-    authError.value = error?.message || '签名认证失败'
-    ElMessage.error(error?.message || '签名认证失败')
+    console.error('[Signature] Error:', error)
+    
+    // Handle specific error codes
+    if (error.code === 4001) {
+      // User rejected the request
+      authError.value = '您取消了签名请求，请重新签名'
+    } else if (error.code === -32002) {
+      // Request pending
+      authError.value = '请在钱包中完成签名操作'
+    } else {
+      authError.value = error.message || '签名失败，请重试'
+    }
+    
+    ElMessage.error(authError.value)
   } finally {
     signatureLoading.value = false
   }
 }
 
 /**
- * Wait for wallet environment to be ready
- * TokenPocket and other wallets may take time to inject ethereum object
- */
-const waitForWallet = async (maxAttempts = 10, interval = 300) => {
-  for (let i = 0; i < maxAttempts; i++) {
-    if (window.ethereum) {
-      console.log(`[Index] Wallet detected on attempt ${i + 1}`)
-      return true
-    }
-    console.log(`[Index] Waiting for wallet... attempt ${i + 1}/${maxAttempts}`)
-    await new Promise(resolve => setTimeout(resolve, interval))
-  }
-  return false
-}
-
-/**
  * Initialize signature auth check on page load
- * Auto-trigger signature if needed
  */
 const initSignatureAuth = async () => {
-  console.log('[Index] ========== Initializing signature auth ==========')
+  console.log('[Signature] Initializing...')
   
-  // Wait for wallet environment to be ready (up to 3 seconds)
-  const walletReady = await waitForWallet(10, 300)
+  // Wait for wallet provider to be injected
+  await new Promise(resolve => setTimeout(resolve, 800))
   
-  console.log('[Index] Wallet ready:', walletReady, 'ethereum:', !!window.ethereum)
+  // Check if wallet provider exists
+  if (!hasWalletProvider()) {
+    console.log('[Signature] No wallet provider, allowing normal access')
+    requiresSignature.value = false
+    isAuthenticated.value = true
+    return
+  }
   
-  // Check if in DApp browser (TokenPocket, MetaMask, etc.)
-  if (walletReady && isInDAppBrowser()) {
-    requiresSignature.value = true
-    console.log('[Index] ✅ In DApp browser, checking signature status...')
+  console.log('[Signature] Wallet provider detected')
+  requiresSignature.value = true
+  
+  try {
+    // Try to get already connected accounts (without prompting)
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' })
     
-    // Check if already authenticated (within 24 hours)
-    const lastSignatureTime = localStorage.getItem(DAILY_SIGNATURE_KEY)
-    const now = Date.now()
-    
-    // Use timestamp for precise 24-hour check
-    if (lastSignatureTime) {
-      const timeDiff = now - parseInt(lastSignatureTime, 10)
-      const hoursDiff = timeDiff / (1000 * 60 * 60)
+    if (accounts && accounts.length > 0) {
+      const walletAddress = accounts[0]
+      connectedWallet.value = walletAddress
+      console.log('[Signature] Found connected wallet:', walletAddress)
       
-      console.log('[Index] Last signature:', { 
-        lastTime: new Date(parseInt(lastSignatureTime, 10)).toISOString(),
-        hoursDiff: hoursDiff.toFixed(2)
-      })
-      
-      if (hoursDiff < 24) {
-        // Signed within 24 hours, allow access
+      // Check if signature is still valid
+      if (isSignatureValid(walletAddress)) {
+        console.log('[Signature] Valid signature found, granting access')
         isAuthenticated.value = true
-        console.log('[Index] ✅ Already authenticated within 24 hours')
+        walletStore.setWallet(walletAddress, 'TokenPocket')
         return
       }
     }
     
-    // Need to sign - block page access and auto-trigger signature
+    // Need signature - show blocking overlay
+    console.log('[Signature] Signature required')
     isAuthenticated.value = false
-    console.log('[Index] ⚠️ Signature required - triggering wallet signature NOW...')
     
-    // Auto-trigger signature immediately
-    handleSignatureConfirm()
-    
-  } else {
-    // Not in DApp browser, allow normal access
-    requiresSignature.value = false
-    isAuthenticated.value = true
-    console.log('[Index] ❌ Not in DApp browser (no ethereum object), allowing normal access')
+  } catch (error) {
+    console.error('[Signature] Init error:', error)
+    // On error, require signature
+    isAuthenticated.value = false
   }
 }
 
