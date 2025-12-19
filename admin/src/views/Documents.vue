@@ -296,9 +296,15 @@ const previewDocument = (docType) => {
 
   switch (docType) {
     case 'whitepaper':
-      url = docConfig.whitepaper_url
+      // For gallery type, use the first page image for preview
+      if (docConfig.whitepaper_type === 'gallery') {
+        url = `${docConfig.whitepaper_url}/page-01.png`
+        type = 'image'  // Display as image in preview
+      } else {
+        url = docConfig.whitepaper_url
+        type = docConfig.whitepaper_type
+      }
       title = '白皮书预览'
-      type = docConfig.whitepaper_type
       break
     case 'msb':
       url = docConfig.msb_url
