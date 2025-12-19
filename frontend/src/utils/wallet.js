@@ -1,0 +1,601 @@
+/**
+ * 钱包连接工具函数
+ * 
+ * 支持的钱包：
+ * - TokenPocket（TP 钱包）
+ * - MetaMask
+ * - imToken
+ * - Trust Wallet
+ * - 其他支持 EIP-1193 标准的钱包
+ * 
+ * 使用方式：
+ * 用户通过钱包内置浏览器访问 DApp，自动检测并连接钱包
+ */
+
+import { useWalletStore } from '@/stores/wallet'
+
+/**
+ * 检测是否在 DApp 浏览器环境中
+ * @returns {boolean} 是否在 DApp 浏览器中
+ */
+export const isDAppBrowser = () => {
+  // 检测是否存在 ethereum 对象（EIP-1193 标准）
+  if (typeof window !== 'undefined' && window.ethereum) {
+    return true
+  }
+  return false
+}
+
+/**
+ * 检测钱包类型
+ * @returns {string} 钱包类型名称
+ */
+export const detectWalletType = () => {
+  if (typeof window === 'undefined' || !window.ethereum) {
+    console.log('[Wallet] detectWalletType: No ethereum object found')
+    return 'Unknown'
+  }
+
+  const ethereum = window.ethereum
+  
+  // 调试：显示所有可用的钱包标识
+  console.log('[Wallet] detectWalletType - Available wallet flags:', {
+    isTokenPocket: ethereum.isTokenPocket,
+    isMetaMask: ethereum.isMetaMask,
+    isImToken: ethereum.isImToken,
+    isTrust: ethereum.isTrust,
+    isCoinbaseWallet: ethereum.isCoinbaseWallet,
+    isOkxWallet: ethereum.isOkxWallet,
+    isOKExWallet: ethereum.isOKExWallet,
+    isBitKeep: ethereum.isBitKeep
+  })
+
+  // 检测 TokenPocket
+  if (ethereum.isTokenPocket) {
+    console.log('[Wallet] ✅ Detected: TokenPocket')
+    return 'TokenPocket'
+  }
+
+  // 检测 MetaMask
+  if (ethereum.isMetaMask) {
+    console.log('[Wallet] ✅ Detected: MetaMask')
+    return 'MetaMask'
+  }
+
+  // 检测 imToken
+  if (ethereum.isImToken) {
+    console.log('[Wallet] ✅ Detected: imToken')
+    return 'imToken'
+  }
+
+  // 检测 Trust Wallet
+  if (ethereum.isTrust) {
+    console.log('[Wallet] ✅ Detected: Trust Wallet')
+    return 'Trust Wallet'
+  }
+
+  // 检测 Coinbase Wallet
+  if (ethereum.isCoinbaseWallet) {
+    console.log('[Wallet] ✅ Detected: Coinbase Wallet')
+    return 'Coinbase Wallet'
+  }
+
+  // 检测 OKX Wallet
+  if (ethereum.isOkxWallet || ethereum.isOKExWallet) {
+    console.log('[Wallet] ✅ Detected: OKX Wallet')
+    return 'OKX Wallet'
+  }
+
+  // 检测 Bitget Wallet
+  if (ethereum.isBitKeep) {
+    console.log('[Wallet] ✅ Detected: Bitget Wallet')
+    return 'Bitget Wallet'
+  }
+
+  console.log('[Wallet] ⚠️ Detected: Unknown Wallet')
+  return 'Unknown Wallet'
+}
+
+/**
+ * 连接钱包
+ * @returns {Promise<{success: boolean, address?: string, error?: string}>}
+ */
+export const connectWallet = async () => {
+  const walletStore = useWalletStore()
+
+  // 检查是否在 DApp 浏览器中
+  if (!isDAppBrowser()) {
+    return {
+      success: false,
+      error: 'Please open in wallet browser (TokenPocket, MetaMask, etc.)'
+    }
+  }
+
+  try {
+    walletStore.setConnecting(true)
+
+    const ethereum = window.ethereum
+    const walletType = detectWalletType()
+
+    console.log('[Wallet] Detected wallet type:', walletType)
+
+    // 请求用户授权连接钱包
+    // 使用 eth_requestAccounts 方法请求连接
+    const accounts = await ethereum.request({
+      method: 'eth_requestAccounts'
+    })
+
+    if (accounts && accounts.length > 0) {
+      const address = accounts[0]
+      walletStore.setWallet(address, walletType)
+
+      return {
+        success: true,
+        address: address,
+        walletType: walletType
+      }
+    } else {
+      walletStore.setError('No accounts found')
+      return {
+        success: false,
+        error: 'No accounts found'
+      }
+    }
+  } catch (error) {
+    console.error('[Wallet] Connection error:', error)
+
+    let errorMessage = 'Connection failed'
+
+    // 处理用户拒绝连接的情况
+    if (error.code === 4001) {
+      errorMessage = 'User rejected the connection request'
+    } else if (error.code === -32002) {
+      errorMessage = 'Connection request pending, please check your wallet'
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+
+    walletStore.setError(errorMessage)
+
+    return {
+      success: false,
+      error: errorMessage
+    }
+  }
+}
+
+/**
+ * 断开钱包连接
+ */
+export const disconnectWallet = () => {
+  const walletStore = useWalletStore()
+  walletStore.disconnect()
+}
+
+/**
+ * 获取当前连接的账户
+ * @returns {Promise<string|null>} 钱包地址或 null
+ */
+export const getCurrentAccount = async () => {
+  if (!isDAppBrowser()) {
+    return null
+  }
+
+  try {
+    const ethereum = window.ethereum
+    const accounts = await ethereum.request({
+      method: 'eth_accounts'
+    })
+
+    if (accounts && accounts.length > 0) {
+      return accounts[0]
+    }
+    return null
+  } catch (error) {
+    console.error('[Wallet] Get accounts error:', error)
+    return null
+  }
+}
+
+/**
+ * 自动连接钱包（如果用户之前已授权）
+ * 用于页面加载时自动恢复连接状态
+ */
+export const autoConnectWallet = async () => {
+  const walletStore = useWalletStore()
+
+  // 首先尝试从 localStorage 恢复
+  walletStore.restoreFromStorage()
+
+  // 如果在 DApp 浏览器中，检查是否已授权
+  if (isDAppBrowser()) {
+    try {
+      const currentAccount = await getCurrentAccount()
+      const walletType = detectWalletType()
+
+      if (currentAccount) {
+        // 如果有已授权的账户，更新状态
+        walletStore.setWallet(currentAccount, walletType)
+        console.log('[Wallet] Auto-connected:', currentAccount)
+        return true
+      }
+    } catch (error) {
+      console.error('[Wallet] Auto-connect error:', error)
+    }
+  }
+
+  return walletStore.isConnected
+}
+
+/**
+ * 监听账户变化
+ * 当用户在钱包中切换账户时触发
+ */
+export const setupAccountChangeListener = () => {
+  if (!isDAppBrowser()) {
+    return
+  }
+
+  const walletStore = useWalletStore()
+  const ethereum = window.ethereum
+
+  // 监听账户变化
+  ethereum.on('accountsChanged', (accounts) => {
+    console.log('[Wallet] Accounts changed:', accounts)
+
+    if (accounts && accounts.length > 0) {
+      const walletType = detectWalletType()
+      const nextAccount = accounts[0]
+      const prevAccount = (walletStore.walletAddress || '').toLowerCase()
+
+      // 切换账户后，清理签名认证缓存（避免旧token误用）
+      if (nextAccount && nextAccount.toLowerCase() !== prevAccount) {
+        localStorage.removeItem('wallet_auth_token')
+        localStorage.removeItem('wallet_auth_token_exp')
+        localStorage.removeItem('wallet_auth_wallet')
+      }
+
+      walletStore.setWallet(nextAccount, walletType)
+    } else {
+      // 用户断开了所有账户
+      localStorage.removeItem('wallet_auth_token')
+      localStorage.removeItem('wallet_auth_token_exp')
+      localStorage.removeItem('wallet_auth_wallet')
+      walletStore.disconnect()
+    }
+  })
+
+  // 监听链变化
+  ethereum.on('chainChanged', (chainId) => {
+    console.log('[Wallet] Chain changed:', chainId)
+    // 链变化时可以选择刷新页面或重新获取数据
+    // window.location.reload()
+  })
+
+  // 监听断开连接
+  ethereum.on('disconnect', (error) => {
+    console.log('[Wallet] Disconnected:', error)
+    localStorage.removeItem('wallet_auth_token')
+    localStorage.removeItem('wallet_auth_token_exp')
+    localStorage.removeItem('wallet_auth_wallet')
+    walletStore.disconnect()
+  })
+}
+
+/**
+ * 初始化钱包连接
+ * 在应用启动时调用
+ */
+export const initWallet = async () => {
+  console.log('[Wallet] Initializing...')
+
+  // 设置监听器
+  setupAccountChangeListener()
+
+  // 尝试自动连接
+  const connected = await autoConnectWallet()
+
+  console.log('[Wallet] Initialization complete, connected:', connected)
+
+  return connected
+}
+
+/**
+ * 获取钱包余额（ETH）
+ * @param {string} address - 钱包地址
+ * @returns {Promise<string>} 余额（单位：ETH）
+ */
+export const getWalletBalance = async (address) => {
+  if (!isDAppBrowser() || !address) {
+    return '0'
+  }
+
+  try {
+    const ethereum = window.ethereum
+    const balance = await ethereum.request({
+      method: 'eth_getBalance',
+      params: [address, 'latest']
+    })
+
+    // 将 wei 转换为 ETH
+    const ethBalance = parseInt(balance, 16) / 1e18
+    return ethBalance.toFixed(4)
+  } catch (error) {
+    console.error('[Wallet] Get balance error:', error)
+    return '0'
+  }
+}
+
+/**
+ * 获取当前网络信息
+ * @returns {Promise<{chainId: string, networkName: string}>}
+ */
+export const getNetworkInfo = async () => {
+  if (!isDAppBrowser()) {
+    return { chainId: '', networkName: 'Unknown' }
+  }
+
+  try {
+    const ethereum = window.ethereum
+    const chainId = await ethereum.request({
+      method: 'eth_chainId'
+    })
+
+    // 常见网络名称映射
+    const networkNames = {
+      '0x1': 'Ethereum Mainnet',
+      '0x38': 'BSC Mainnet',
+      '0x89': 'Polygon Mainnet',
+      '0xa86a': 'Avalanche C-Chain',
+      '0xa4b1': 'Arbitrum One',
+      '0xa': 'Optimism',
+      '0x5': 'Goerli Testnet',
+      '0xaa36a7': 'Sepolia Testnet'
+    }
+
+    return {
+      chainId: chainId,
+      networkName: networkNames[chainId] || `Chain ID: ${parseInt(chainId, 16)}`
+    }
+  } catch (error) {
+    console.error('[Wallet] Get network error:', error)
+    return { chainId: '', networkName: 'Unknown' }
+  }
+}
+
+// ==================== 代币余额相关 ====================
+
+/**
+ * ERC20 代币合约 ABI（只包含 balanceOf 方法）
+ */
+const ERC20_BALANCE_ABI = [
+  {
+    constant: true,
+    inputs: [{ name: '_owner', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: 'balance', type: 'uint256' }],
+    type: 'function'
+  }
+]
+
+/**
+ * 常用代币合约地址（BSC 主网）
+ * 注意：不同网络的合约地址不同
+ */
+const TOKEN_CONTRACTS = {
+  // BSC 主网
+  '0x38': {
+    USDT: '0x55d398326f99059fF775485246999027B3197955', // BSC USDT
+    WLD: '0x0000000000000000000000000000000000000000'   // WLD 地址（需要替换为实际地址）
+  },
+  // 以太坊主网
+  '0x1': {
+    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // ETH USDT
+    WLD: '0x163f8C2467924be0ae7B5347228CABF260318753'   // ETH WLD
+  },
+  // Polygon
+  '0x89': {
+    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // Polygon USDT
+    WLD: '0x0000000000000000000000000000000000000000'
+  }
+}
+
+/**
+ * 获取 ERC20 代币余额
+ * @param {string} address - 钱包地址
+ * @param {string} tokenContract - 代币合约地址
+ * @param {number} decimals - 代币精度（默认18）
+ * @returns {Promise<string>} 代币余额
+ */
+export const getTokenBalance = async (address, tokenContract, decimals = 18) => {
+  if (!isDAppBrowser() || !address || !tokenContract) {
+    return '0'
+  }
+
+  try {
+    const ethereum = window.ethereum
+
+    // 构造 balanceOf 调用数据
+    // balanceOf(address) 函数签名: 0x70a08231
+    const data = '0x70a08231' + address.slice(2).padStart(64, '0')
+
+    const result = await ethereum.request({
+      method: 'eth_call',
+      params: [
+        {
+          to: tokenContract,
+          data: data
+        },
+        'latest'
+      ]
+    })
+
+    // 将结果从 hex 转换为数字
+    const balance = parseInt(result, 16) / Math.pow(10, decimals)
+    return balance.toFixed(4)
+  } catch (error) {
+    console.error('[Wallet] Get token balance error:', error)
+    return '0'
+  }
+}
+
+/**
+ * 获取 USDT 余额
+ * @param {string} address - 钱包地址
+ * @returns {Promise<string>} USDT 余额
+ */
+export const getUsdtBalance = async (address) => {
+  if (!isDAppBrowser() || !address) {
+    return '0.0000'
+  }
+
+  try {
+    // 获取当前链 ID
+    const { chainId } = await getNetworkInfo()
+    const contracts = TOKEN_CONTRACTS[chainId]
+
+    if (!contracts || !contracts.USDT) {
+      console.log('[Wallet] USDT contract not found for chain:', chainId)
+      return '0.0000'
+    }
+
+    // USDT 通常是 6 位小数（以太坊）或 18 位小数（BSC）
+    const decimals = chainId === '0x1' ? 6 : 18
+    return await getTokenBalance(address, contracts.USDT, decimals)
+  } catch (error) {
+    console.error('[Wallet] Get USDT balance error:', error)
+    return '0.0000'
+  }
+}
+
+/**
+ * 获取 WLD 余额
+ * @param {string} address - 钱包地址
+ * @returns {Promise<string>} WLD 余额
+ */
+export const getWldBalance = async (address) => {
+  if (!isDAppBrowser() || !address) {
+    return '0.0000'
+  }
+
+  try {
+    // 获取当前链 ID
+    const { chainId } = await getNetworkInfo()
+    const contracts = TOKEN_CONTRACTS[chainId]
+
+    if (!contracts || !contracts.WLD || contracts.WLD === '0x0000000000000000000000000000000000000000') {
+      console.log('[Wallet] WLD contract not found for chain:', chainId)
+      return '0.0000'
+    }
+
+    // WLD 是 18 位小数
+    return await getTokenBalance(address, contracts.WLD, 18)
+  } catch (error) {
+    console.error('[Wallet] Get WLD balance error:', error)
+    return '0.0000'
+  }
+}
+
+/**
+ * 获取所有代币余额
+ * @param {string} address - 钱包地址
+ * @returns {Promise<{usdt: string, wld: string, equity: string}>}
+ */
+export const getAllBalances = async (address) => {
+  const walletStore = useWalletStore()
+  
+  walletStore.setLoadingBalance(true)
+
+  try {
+    // 并行获取所有余额
+    const [usdt, wld] = await Promise.all([
+      getUsdtBalance(address),
+      getWldBalance(address)
+    ])
+
+    // 计算总权益（简单相加，实际应该根据汇率计算）
+    const usdtNum = parseFloat(usdt) || 0
+    const wldNum = parseFloat(wld) || 0
+    // 假设 WLD 价格为 0（需要从实际API获取价格）
+    const equity = usdtNum.toFixed(4)
+
+    // 更新 store
+    walletStore.updateBalances({
+      usdt,
+      wld,
+      equity,
+      pnl: '+0.00' // 今日盈亏需要从后端获取
+    })
+
+    console.log('[Wallet] All balances fetched:', { usdt, wld, equity })
+
+    return { usdt, wld, equity }
+  } catch (error) {
+    console.error('[Wallet] Get all balances error:', error)
+    return { usdt: '0.0000', wld: '0.0000', equity: '0.0000' }
+  } finally {
+    walletStore.setLoadingBalance(false)
+  }
+}
+
+/**
+ * 刷新钱包余额
+ * 在连接成功后或用户手动刷新时调用
+ */
+export const refreshBalances = async () => {
+  const walletStore = useWalletStore()
+  
+  if (!walletStore.isConnected || !walletStore.walletAddress) {
+    console.log('[Wallet] Cannot refresh balances: wallet not connected')
+    return
+  }
+
+  return await getAllBalances(walletStore.walletAddress)
+}
+
+/**
+ * 确保推荐关系已绑定
+ * 在购买、量化等关键操作前调用，确保推荐关系不会遗漏
+ * @returns {Promise<boolean>} 是否成功绑定或已绑定
+ */
+export const ensureReferralBound = async () => {
+  const walletStore = useWalletStore()
+  
+  if (!walletStore.isConnected || !walletStore.walletAddress) {
+    return false
+  }
+  
+  // 获取保存的推荐码
+  const refCode = localStorage.getItem('vitu_referral_code')
+  if (!refCode) {
+    return true // 没有推荐码，无需绑定
+  }
+  
+  // 不能邀请自己
+  if (refCode.toLowerCase() === walletStore.walletAddress.slice(-8).toLowerCase()) {
+    localStorage.removeItem('vitu_referral_code')
+    return true
+  }
+  
+  try {
+    console.log('[Wallet] Ensuring referral bound, code:', refCode)
+    const response = await fetch('/api/invite/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet_address: walletStore.walletAddress,
+        referrer_code: refCode
+      })
+    })
+    
+    const data = await response.json()
+    if (data.success) {
+      console.log('[Wallet] Referral bound successfully!')
+      localStorage.removeItem('vitu_referral_code')
+    }
+    return true
+  } catch (error) {
+    console.error('[Wallet] Failed to bind referral:', error)
+    return false
+  }
+}

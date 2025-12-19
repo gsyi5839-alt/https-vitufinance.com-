@@ -1,0 +1,564 @@
+{
+  "nav": {
+    "connectWallet": "Connect wallet",
+    "language": "English"
+  },
+  "onePage": {
+    "emailText": "Contact us for more information",
+    "items": [
+      {
+        "title": "Secure Trading",
+        "description": "Multiple encryption protects your assets"
+      },
+      {
+        "title": "Fast Deposit",
+        "description": "Multiple payment methods available"
+      },
+      {
+        "title": "Real-time Market",
+        "description": "Global market data updated in real-time"
+      },
+      {
+        "title": "Professional Analysis",
+        "description": "In-depth market analysis tools"
+      },
+      {
+        "title": "Mobile Trading",
+        "description": "Control the market anytime, anywhere"
+      },
+      {
+        "title": "Customer Service",
+        "description": "7×24 online support"
+      },
+      {
+        "title": "Compliant Operation",
+        "description": "Global compliance license certification"
+      },
+      {
+        "title": "Smart Recommendations",
+        "description": "AI-driven investment advice"
+      },
+      {
+        "title": "Community Exchange",
+        "description": "Interact with global investors"
+      }
+    ]
+  },
+  "twoPage": {
+    "mainTitle": "Welcome to VituFinance",
+    "subtitle": "Your Digital Asset Trading Platform",
+    "cardTitle": "Professional Trading Experience",
+    "cardDesc": "We provide secure, fast, and professional digital asset trading services",
+    "features": [
+      "Bank-level security",
+      "Real-time market data",
+      "7×24 customer support",
+      "Low transaction fees"
+    ],
+    "ctaButton": "Get Started",
+    "stats": [
+      {
+        "number": "1M+",
+        "label": "Registered Users"
+      },
+      {
+        "number": "$10B+",
+        "label": "Trading Volume"
+      },
+      {
+        "number": "100+",
+        "label": "Trading Pairs"
+      },
+      {
+        "number": "200+",
+        "label": "Countries and Regions"
+      }
+    ]
+  },
+  "fourPage": {
+    "pageTitle": "Our Services",
+    "pageDesc": "Professional, secure, and efficient digital asset trading solutions",
+    "services": [
+      {
+        "title": "Spot Trading",
+        "description": "Support spot trading of various mainstream digital currencies, instant transaction, safe and reliable",
+        "features": [
+          "Low fees",
+          "High liquidity",
+          "Instant arrival"
+        ]
+      },
+      {
+        "title": "Contract Trading",
+        "description": "Provide perpetual contracts, delivery contracts and other derivatives trading services",
+        "features": [
+          "High leverage",
+          "Two-way trading",
+          "Risk management"
+        ]
+      },
+      {
+        "title": "Wealth Management",
+        "description": "Diversified digital asset wealth management products for steady growth of your assets",
+        "features": [
+          "Flexible access",
+          "Stable returns",
+          "Security guarantee"
+        ]
+      },
+      {
+        "title": "API Trading",
+        "description": "Powerful API interface, support quantitative trading and automated strategies",
+        "features": [
+          "High performance",
+          "Low latency",
+          "Stable and reliable"
+        ]
+      },
+      {
+        "title": "Security",
+        "description": "Multiple security protection system, comprehensive protection of your digital assets",
+        "features": [
+          "Cold and hot wallets",
+          "Multi-signature",
+          "Real-time monitoring"
+        ]
+      }
+    ],
+    "ctaTitle": "Ready to get started?",
+    "ctaDesc": "Register now and experience professional digital asset trading services",
+    "ctaButton": "Register Now"
+  },
+  "fivePage": {
+    "pageTitle": "Trading Center",
+    "pairHeader": [
+      "Pair",
+      "Latest Price",
+      "24h Change",
+      "24h Volume",
+      "Action"
+    ],
+    "buyButton": "Buy",
+    "sellButton": "Sell"
+  },
+  "indexPage": {
+    "sectionTitle": "Popular Cryptocurrencies"
+  },
+  "homePage": {
+    "announcement": "Welcome to Vitu Finance! Start your AI-powered crypto journey today.",
+    "introText": "Worldcoin aims to provide universal access to the global economy, no matter what country you are from or what background you come from, Create a place for all of us to benefit in the era of artificial intelligence, where you can stake your WLD to get more benefits.",
+    "worldcoinText1": "Worldcoin aims to provide universal access to the global economy, no matter what country you are from or what background you come from, Create a place for all of us to benefit in the era of artificial intelligence, where you can stake your WLD to get more benefits.",
+    "worldcoinText2": "",
+    "pledgeLabel": "Pledge",
+    "earnTitle": "Earn more coins",
+    "dailyTasks": "Daily tasks",
+    "worldAlbotTelegram": "World Albot Telegram",
+    "tasksList": "Tasks list",
+    "dailyReward": "Daily reward",
+    "joinTgChannel": "Join our TG channel",
+    "shareFacebook": "Share our Facebook account",
+    "followYoutube": "Follow us on YouTube",
+    "marketTitle": "Market"
+  },
+  "bottomNav": {
+    "home": "Home",
+    "robot": "Robot",
+    "invite": "Invite",
+    "follow": "Follow",
+    "assets": "Assets"
+  },
+  "pledgePage": {
+    "description": "Worldcoin aims to provide universal access to the global economy, no matter what country you are from or what background you come from, Create a place for all of us to benefit in the era of artificial intelligence, where you can stake your WLD to get more benefits.",
+    "tabs": {
+      "wldPledge": "WLD pledge",
+      "myPledge": "My Pledge",
+      "expiredPledge": "Expired Pledge"
+    },
+    "totalPledgeIncome": "Total pledge income:",
+    "runCycle": "Run cycle:",
+    "holdAtSameTime": "Hold at the same time:",
+    "syntheticMiner": "Synthetic Miner",
+    "days": "Days",
+    "pieces": "Pieces",
+    "noActivePledges": "No active pledges",
+    "noExpiredPledges": "No expired pledges",
+    "pledgeFailed": "Pledge failed",
+    "pledgeSuccess": "Pledge created successfully!",
+    "pleaseConnectWallet": "Please connect your wallet",
+    "processing": "Processing...",
+    "statusActive": "Active",
+    "statusExpired": "Completed",
+    "stakedAmount": "Staked Amount:",
+    "earnedIncome": "Earned Income:",
+    "totalEarned": "Total Earned:",
+    "remainingDays": "Remaining Days:",
+    "endDate": "End Date:"
+  },
+  "robotPage": {
+    "title": "AI Robot",
+    "announcement": "Launches the global public test recruitment partner award plan",
+    "totalValueLabel": "Quantify the total amount (USD)",
+    "captionLabel": "Caption",
+    "aiRobotTitle": "AI Trend Quantitative Robot",
+    "description": "Vitu Finance uses high-frequency grid quantitative strategies through AI, aiming to reduce risk while maximizing returns. It monitors hundreds of trading pairs on CEX and DEX to achieve automatic profits.",
+    "tabs": {
+      "cexRobots": "CEX-Robot",
+      "dexRobots": "DEX-Robot",
+      "myRobots": "My Robot",
+      "expiredRobot": "Expired Robot"
+    },
+    "robotName": "Binance AI Robot",
+    "coinbaseRobotName": "Coinbase AI Robot",
+    "okxRobotName": "OKX AI Robot",
+    "bybitRobotName": "Bybit AI Robot",
+    "upbitRobotName": "Upbit AI Robot",
+    "bitfinexRobotName": "Bitfinex AI Robot",
+    "kucoinRobotName": "Kucoin AI Robot",
+    "bitgetRobotName": "Bitget AI Robot",
+    "gateRobotName": "Gate AI Robot",
+    "binanceBot01Name": "Binance AI Robot-01",
+    "pancakeSwapRobotName": "PancakeSwap AI Robot",
+    "uniswapRobotName": "Uniswap AI Robot",
+    "baseSwapRobotName": "BaseSwap AI Robot",
+    "sushiSwapRobotName": "SushiSwap AI Robot",
+    "jupiterRobotName": "Jupiter AI Robot",
+    "curveRobotName": "Curve AI Robot",
+    "toBeUnlocked": "To be unlocked",
+    "countdown": "Countdown",
+    "dodoRobotName": "DODO AI Robot",
+    "depositReturnNote": "Principal and profit will be returned after expiration",
+    "dexRobotName": "DEX AI Robot",
+    "arbitrageOrders": "Number of arbitrage orders",
+    "dailyProfit": "Daily profit",
+    "totalReturnMaturity": "Total return at maturity",
+    "operationCycle": "Operation cycle",
+    "limitedUnits": "Limited number of units",
+    "openButton": "Open",
+    "contractCount": "Contract count",
+    "dailyReturn": "Daily return",
+    "cycleTime": "Cycle time",
+    "operatingPeriod": "Operating period",
+    "openingQuantity": "Opening quantity",
+    "days": "Days",
+    "day": "Day",
+    "enableButton": "Enable",
+    "noMyRobots": "No robots yet",
+    "noExpiredRobots": "No expired robots",
+    "promptTitle": "Tips",
+    "soldOut": "This robot is sold out",
+    "purchaseSuccess": "Successfully purchased {name}!",
+    "purchaseFailed": "Purchase failed",
+    "purchaseFailedRetry": "Purchase failed, please try again",
+    "alreadyQuantified": "Already quantified today",
+    "quantifySuccess": "Quantification successful! +{amount} USDT",
+    "quantifyFailed": "Quantification failed",
+    "quantifyFailedRetry": "Quantification failed, please try again",
+    "quantifySuccessTitle": "Quantification Success!",
+    "quantifySuccessDesc": "Added to your balance"
+  },
+  "invitePage": {
+    "comingSoon": "Coming Soon",
+    "announcement": "launches the global public test recruitment partner award plan",
+    "worldAlbot": "Vitu Finance",
+    "aiRobot": "AI Trend Quantitative Robot",
+    "formalEmployee": "Formal Employee",
+    "inviteFriend": "Invite a friend",
+    "levelIntroduction": "Level Introduction",
+    "inviteFriendTitle": "Invite a friend",
+    "inviteFriendSubtitle": "You and your friend will receive bonuses",
+    "cexReferralTitle": "CEX-Robots Referral Rewards",
+    "cexReferralDesc": "Invite friends to activate CEX robots to get 50% of the 8th level quantitative profit reward",
+    "cexReferralLevels": "Level 1-30% Level 2-10% Level 3-5% Level 4-1% Level 5-1% Level 6-1% Level 7-1% Level 8-1%",
+    "cexReferralExample": "For example: if you directly promote 10 members to use robots to complete work, and they earn a total of 1,000 USDT on the day, you will receive a 300 USDT/day reward, and so on, the more you share, the more you earn.",
+    "dexReferralTitle": "DEX-Robots Referral Rewards",
+    "dexReferralDesc": "Invite friends to start the DEX robot to get a referral reward of the startup amount",
+    "dexLevel1": "Recommend a first-level startup robot and reward 5% of the startup amount",
+    "dexLevel2": "Recommend the second-level startup robot to reward 3% of the startup amount",
+    "dexLevel3": "Recommend level three startup robots to reward 2% of the startup amount",
+    "connectWalletHint": "Connect wallet to get invite link",
+    "copySuccess": "Link copied!",
+    "copyFailed": "Copy failed, please try again",
+    "connectWalletFirst": "Please connect your wallet first",
+    "regularUser": "Regular User",
+    "brokerLevel": "Level",
+    "dailyTotalIncome": "Daily Total Income",
+    "teamMember": "Team Member",
+    "totalRecharge": "Total Community Recharge",
+    "directMembers": "Directly Recommend Members",
+    "totalWithdrawals": "Total Community Withdrawals",
+    "totalPerformance": "Total Community Performance",
+    "totalReferralReward": "Total Referral Reward",
+    "totalTeamReward": "Total Team Reward",
+    "communityMemberDetails": "COMMUNITY MEMBER DETAILS",
+    "communityMemberDetailsComingSoon": "Community member details feature is under development",
+    "clickToViewDetails": "Click to view details",
+    "referralRewardsDetail": "Referral Rewards Detail",
+    "noReferralRecords": "No referral rewards yet",
+    "quantifyReward": "Quantify Reward",
+    "maturityReward": "Maturity Reward",
+    "fromUser": "From"
+  },
+  "communityPage": {
+    "levelEmployees": "Level {level} Employees:",
+    "communityDetails": "Community Details",
+    "memberCount": "Member Count",
+    "teamPerformance": "Team Performance",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "connectWalletFirst": "Please connect your wallet first",
+    "fetchError": "Failed to fetch data"
+  },
+  "followPage": {
+    "comingSoon": "Coming Soon",
+    "totalValueLabel": "Quantify the total amount (USD)",
+    "captionLabel": "Caption",
+    "aiRobotTitle": "AI Trend Quantitative Robot",
+    "description": "Vitu Finance uses high-frequency grid quantitative strategies through AI, aiming to reduce risk while maximizing returns. It monitors hundreds of trading pairs on CEX and DEX to achieve automatic profits.",
+    "tabs": {
+      "gridRobots": "Grid-Robots",
+      "highRobots": "High-Robots",
+      "myRobot": "My Robot",
+      "expiredRobot": "Expired Robot"
+    },
+    "arbitrageOrders": "Number of arbitrage orders",
+    "dailyProfit": "Daily profit",
+    "totalReturnMaturity": "Total return at maturity",
+    "operationCycle": "Operation cycle",
+    "limitedUnits": "Limited number of units purchased",
+    "depositReturnNote": "Deposit and income will be returned when due",
+    "openButton": "Open",
+    "myRobotComingSoon": "My Robot Coming Soon",
+    "expiredRobotComingSoon": "Expired Robot Coming Soon",
+    "promptTitle": "Tips",
+    "walletNotExist": "Wallet address does not exist, please connect your wallet first",
+    "insufficientBalance": "Insufficient USDT balance, please deposit first",
+    "cancelBtn": "Cancel",
+    "goToWallet": "Go to Wallet",
+    "depositBtn": "Deposit",
+    "confirmBtn": "Confirm",
+    "dailyProfitLabel": "Daily Profit",
+    "durationLabel": "Duration",
+    "amountRangeLabel": "Amount Range",
+    "enterAmountPlaceholder": "Enter amount",
+    "minAmountError": "Minimum amount is {amount} USDT",
+    "maxAmountError": "Maximum amount is {amount} USDT",
+    "validAmountError": "Please enter a valid amount",
+    "purchaseSuccess": "Successfully purchased {name}!",
+    "purchaseFailed": "Purchase failed",
+    "insufficientBalanceDetail": "Insufficient balance. You have {amount} USDT",
+    "purchased": "Purchased",
+    "dailyLimitReached": "You can only purchase one of this robot per day",
+    "noMyRobots": "No robots purchased yet",
+    "noExpiredRobots": "No expired robots",
+    "quantifySuccess": "Quantification successful! Earned {amount} USDT",
+    "quantifyFailed": "Quantification failed",
+    "myRobot": {
+      "principal": "Principal",
+      "expectedReturn": "Expected Return",
+      "totalProfit": "Total Profit",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "remainingDays": "Remaining Days",
+      "waitingMaturity": "Waiting for maturity",
+      "pendingQuantify": "Pending quantify",
+      "quantifiedToday": "Quantified today",
+      "canQuantify": "Ready to quantify",
+      "quantified": "Quantified",
+      "quantify": "Quantify",
+      "returnedAmount": "Returned",
+      "period": "Period",
+      "expired": "Expired",
+      "quantifySuccess": "Quantification Success!",
+      "highRobotEarningsNote": "Profit will be returned at maturity",
+      "gridRobotEarningsNote": "Added to your balance"
+    }
+  },
+  "assetsPage": {
+    "comingSoon": "Coming Soon",
+    "equityValue": "Equity value(USDT)",
+    "todayPnl": "Today's PNL",
+    "details": "Details",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "flashExchange": "Flash Exchange",
+    "balance": "Balance",
+    "max": "MAX",
+    "currentPrice": "Current price",
+    "todayRedeemable": "Today's redeemable quantity",
+    "confirmExchange": "Confirm Exchange",
+    "whitePaper": "White Paper",
+    "msbLicense": "MSB License",
+    "safe": "Safe",
+    "businessLicense": "Business License",
+    "openSafe": "Open safe",
+    "enterSafePassword": "Enter safe password",
+    "lockBalance": "Lock balance",
+    "cancel": "Cancel",
+    "sure": "Sure",
+    "detailsComingSoon": "Details Coming Soon",
+    "tetherUsd": "Tether USD",
+    "worldcoin": "Worldcoin",
+    "connectWalletFirst": "Please connect your wallet first",
+    "exchangeSuccess": "Exchange successful!",
+    "insufficientBalance": "Insufficient {currency} balance",
+    "enterSixDigit": "Please enter 6-digit password",
+    "dailySignInRewards": "Daily Sign-in Rewards",
+    "noRecords": "No records yet",
+    "depositRecord": "Deposit",
+    "withdrawRecord": "Withdraw",
+    "fee": "Fee",
+    "actualAmount": "Actual Amount",
+    "quantifyRecord": "Quantify Earnings",
+    "referralRecord": "Referral Reward",
+    "completed": "Completed",
+    "inviteToExchange": "Invite members to unlock WLD exchange",
+    "enterAmount": "Please enter a valid amount",
+    "exchangeRecord": "Exchange",
+    "statusPending": "Pending",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed",
+    "statusProcessing": "Processing"
+  },
+  "quantifyHistory": {
+    "title": "Quantify Earnings",
+    "todayEarnings": "Today",
+    "weekEarnings": "This Week",
+    "monthEarnings": "This Month",
+    "totalEarnings": "Total Earnings",
+    "historyTitle": "Earnings History",
+    "noRecords": "No earnings records yet",
+    "loadMore": "Load More",
+    "principal": "Principal"
+  },
+  "levelPage": {
+    "title": "BROKER SYSTEM",
+    "level1": "LEVEL 1 BROKER",
+    "level2": "LEVEL 2 BROKER",
+    "level3": "LEVEL 3 BROKER",
+    "level4": "LEVEL 4 BROKER",
+    "level5": "LEVEL 5 BROKER",
+    "conditions": "Conditions",
+    "salary": "Rewards",
+    "note": "Note",
+    "level1Conditions": "Directly invite 5 people to activate Coinbase robot (minimum $100) or higher, with total team performance exceeding 1,000 USDT",
+    "level1Salary": "Daily dividend: 5 USDT, Monthly income: 150 USDT, Daily flash exchange: 1 WLD",
+    "level2Conditions": "Directly invite 10 people to activate Coinbase robot (minimum $100) or higher, including 2 Level 1 Brokers in the team, with total team performance exceeding 5,000 USDT",
+    "level2Salary": "Daily dividend: 15 USDT, Monthly income: 450 USDT, Daily flash exchange: 2 WLD",
+    "level3Conditions": "Directly invite 20 people to activate Coinbase robot (minimum $100) or higher, including 2 Level 2 Brokers in the team, with total team performance exceeding 20,000 USDT",
+    "level3Salary": "Daily dividend: 60 USDT, Monthly income: 1,800 USDT, Daily flash exchange: 3 WLD",
+    "level4Conditions": "Directly invite 30 people to activate Coinbase robot (minimum $100) or higher, including 2 Level 3 Brokers in the team, with total team performance exceeding 80,000 USDT",
+    "level4Salary": "Daily dividend: 300 USDT, Monthly income: 9,000 USDT, Daily flash exchange: 5 WLD",
+    "level5Conditions": "Directly invite 50 people to activate Coinbase robot (minimum $100) or higher, including 2 Level 4 Brokers in the team, with total team performance exceeding 200,000 USDT",
+    "level5Salary": "Daily dividend: 1,000 USDT, Monthly income: 30,000 USDT, Daily flash exchange: 10 WLD",
+    "noteContent": "Upon upgrading to Level 1 Broker, you'll receive daily rewards of 5 USDT and monthly income of 150 USDT. Exchange 1 WLD daily. Directly grow your team. If team total does not meet upgrade requirements, you will be automatically downgraded. Higher team levels allow more WLD to be exchanged."
+  },
+  "captionPage": {
+    "faq1Title": "How does Vitu Finance work to gain income?",
+    "faq1Content": "The working principle of Vitu Finance is to use quantitative robots to conduct quantitative robot transactions on Binance coinbase or major cryptocurrency exchanges, and automatically access the API to the exchange, Using AI technology to continuously change strategies and update data, the robot continuously detects market conditions and earns the price difference through high-frequency trading, thereby obtaining benefits. Join us to explore the frontier of artificial intelligence!",
+    "faq2Title": "There are two types of AI trend quantification robots",
+    "faq2Content1": "Vitu Finance's AI trend quantification robot adopts a high-frequency grid quantification strategy, aiming to reduce risks while maximizing returns. It monitors hundreds of trading pairs on CEX and DEX, automatically optimizes trading strategies through deep learning and big data analysis, and achieves automatic profits.",
+    "faq2Cex": "CEX-Robots",
+    "faq2CexContent": "thereby obtaining benefits. Join us to explore the frontier of artificial intelligence!\nCEX-Robots is a robot that connects to centralized exchanges through API. Binance coinbase is a centralized exchange. After activating the robot, you can get stable income every day. The deposit for activating the robot will be returned to your account when it expires.",
+    "faq2Dex": "DEX-Robots",
+    "faq2DexContent": "DEX-Robots is a robot for decentralized exchanges. PancakeSwap Uniswap is a decentralized exchange. After activating the robot, you need to complete work every day. After the salary and deposit expire, they will be paid to your account together. The yield is higher than CEX-Robots.",
+    "faq3Title": "How to quickly participate in Vitu Finance?",
+    "faq3Step1": "1. Register a DAPP account through the platform invitation link in the crypto wallet browser",
+    "faq3Step2": "2. Select the type of quantitative robot you want to participate in and start the robot",
+    "faq3Step3": "3. Complete the trading orders of quantitative robots every day to earn arbitrage profits",
+    "faq3Step4": "4. Promote team members to participate to obtain generous promotion rewards and team income",
+    "faq4Title": "How to start the Vitu Finance robot to earn daily income?",
+    "faq4Step1": "1. Select the type of robot you want on the \"Robot\" page, and then click the \"Start\" button",
+    "faq4Step2": "2. On the \"My Robot\" page, click the \"Start Quantification\" button to complete today's arbitrage order",
+    "faq4Step3": "3. Wait for tens of seconds to complete the quantitative task and get today's profit",
+    "faq4Note1": "-Update the day's robot orders after 00:00 (UTC) every day, without waiting for 24 hours",
+    "faq4Note2": "-You must manually click \"Start Quantification\" every day to complete the order task to get the day's quantitative income",
+    "faq5Title": "Why do I need to pay a deposit to start a robot to work?",
+    "faq5Content1": "Because we have signed effective quantitative orders with major exchanges and third-party institutions, we allocate orders to members who activate robots for daily arbitrage.",
+    "faq5Content2": "If anyone participates in the work and quits without paying the deposit, or if the robot is activated but fails to create benefits, causing it to be abandoned, not only will our cost of building the robot be voided, but we will also pay a large amount of liquidated damages to other companies.",
+    "faq6Title": "The robot can achieve 2%-3%/day income. Will production be reduced in the future?",
+    "faq6Content1": "At present, the latest Vitu Finance robot's average income can reach 3%/day. Because our exclusive super quantum robot is continuously optimized, upgraded and iterated through the quantitative behavior generated by global users using Vitu Finance generative pre-training conversion, it has broken the monopoly on core technology.",
+    "faq6Content2": "In fact, in the field of crypto, the quantified income of top companies can already increase the annualized income to dozens of times. However, because the technical threshold is too high and has an excessive impact on the local gap between rich and poor, it has never been made available to individual users or announced to the outside world.",
+    "faq6Content3": "The birth of Vitu Finance is to break the industrial technology monopoly, so that all ordinary people can participate in quantification with one click through AI artificial intelligence and enjoy the early dividends of the industry.",
+    "faq6Content4": "As the threshold of quantitative technology decreases and the industry becomes more common, the profit sources and risk-return rates of quantitative returns will decrease, and the benefits generated will naturally decrease. Revenue from newly launched robots may decline in the future."
+  },
+  "announcementPage": {
+    "title": "Announcement",
+    "loading": "Loading announcements...",
+    "noAnnouncements": "No announcements available",
+    "loadFailed": "Failed to load announcements"
+  },
+  "socialPopup": {
+    "youtubeTitle": "default.Youtube",
+    "telegramTitle": "Join our TG channel",
+    "facebookTitle": "Share our Facebook account",
+    "join": "Join",
+    "check": "Check",
+    "checked": "Checked",
+    "checking": "Checking..."
+  },
+  "dailyReward": {
+    "title": "Daily reward",
+    "description": "Accrue coins for logging into the game daily without skipping",
+    "day": "Day",
+    "claim": "Claim",
+    "claimed": "Claimed",
+    "processing": "Processing...",
+    "alreadyClaimedToday": "Already claimed today",
+    "claimFailed": "Claim failed, please try again",
+    "connectWalletFirst": "Please connect your wallet first",
+    "connectWalletHint": "Please connect your wallet to view and claim daily rewards"
+  },
+  "depositModal": {
+    "enterValidAmount": "Please enter a valid amount (minimum 20 USDT)",
+    "openInWalletBrowser": "Please open in wallet browser (TokenPocket, MetaMask, etc.)",
+    "connectWalletFirst": "Please connect your wallet first",
+    "depositSuccess": "Deposit successful! Amount: {amount} USDT",
+    "transactionCancelled": "Transaction cancelled",
+    "insufficientBalance": "Insufficient USDT balance",
+    "transferFailed": "Transfer failed"
+  },
+  "withdrawModal": {
+    "minWithdrawAmount": "Minimum withdrawal amount is 5 USDT",
+    "insufficientBalance": "Insufficient balance",
+    "enterValidAmount": "Please enter a valid amount",
+    "connectWalletFirst": "Please connect your wallet first"
+  },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "close": "Close",
+    "join": "Join",
+    "check": "Check",
+    "checked": "Checked",
+    "checking": "Checking...",
+    "claim": "Claim",
+    "claimed": "Claimed",
+    "processing": "Processing...",
+    "days": "Days",
+    "day": "Day",
+    "quantifying": "Quantifying",
+    "quantifyComplete": "Quantify Complete",
+    "quantified": "Quantified",
+    "quantify": "Quantify",
+    "running": "Running",
+    "stopped": "Stopped",
+    "principal": "Principal",
+    "dailyRate": "Daily Rate",
+    "totalProfit": "Total Profit",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "remainingDays": "Remaining Days",
+    "usdt": "USDT",
+    "wld": "WLD"
+  }
+}

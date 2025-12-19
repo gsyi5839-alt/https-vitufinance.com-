@@ -1,0 +1,372 @@
+/**
+ * Safari/iOS 性能优化样式
+ * 针对苹果设备的特殊优化，解决卡顿问题
+ */
+
+// ==================== 性能优化变量 ====================
+
+// Safari优化的过渡时间（更短）
+$safari-transition-duration: 0.15s;
+
+// 简化的阴影（减少图层）
+$safari-shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+$safari-shadow-medium: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+// ==================== 苹果设备全局优化 ====================
+
+html.is-apple,
+html.is-safari,
+html.is-ios {
+  // 禁用子像素抗锯齿（减少GPU负担）
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  // 全局禁用backdrop-filter（Safari性能杀手）
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  // 使用半透明背景替代毛玻璃效果
+  .sidebar {
+    background-color: var(--admin-sidebar-bg) !important;
+  }
+  
+  .navbar {
+    background-color: var(--admin-header-bg) !important;
+  }
+  
+  // 优化所有过渡动画
+  *:not(.no-transition) {
+    transition-duration: $safari-transition-duration !important;
+    transition-timing-function: ease-out !important;
+  }
+  
+  // 禁用复杂的transform动画
+  .stat-card:hover {
+    transform: none !important;
+    box-shadow: $safari-shadow-medium !important;
+  }
+  
+  // 简化box-shadow
+  .page-container,
+  .el-card,
+  .stat-card {
+    box-shadow: $safari-shadow-light !important;
+    
+    &:hover {
+      box-shadow: $safari-shadow-medium !important;
+    }
+  }
+  
+  // 优化滚动性能
+  .main-content,
+  .sidebar-menu-wrapper,
+  .el-scrollbar__wrap {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: auto !important; // 禁用平滑滚动
+    will-change: scroll-position;
+  }
+  
+  // 禁用脉冲动画
+  .status-badge::before {
+    animation: none !important;
+  }
+  
+  // 使用GPU加速的属性
+  .sidebar,
+  .main-container,
+  .navbar {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  // 简化页面过渡动画
+  .slide-fade-enter-active,
+  .slide-fade-leave-active {
+    transition: opacity 0.1s ease-out !important;
+  }
+  
+  .slide-fade-enter-from,
+  .slide-fade-leave-to {
+    transform: none !important;
+    opacity: 0;
+  }
+  
+  // 禁用缩放动画
+  .zoom-enter-active,
+  .zoom-leave-active {
+    transition: opacity 0.1s ease-out !important;
+  }
+  
+  .zoom-enter-from,
+  .zoom-leave-to {
+    transform: none !important;
+    opacity: 0;
+  }
+  
+  // 优化表格渲染
+  .el-table {
+    will-change: contents;
+    
+    // 禁用表格行悬停动画
+    .el-table__row {
+      transition: none !important;
+    }
+  }
+  
+  // 优化对话框动画
+  .el-overlay {
+    transition: opacity 0.1s !important;
+    
+    .el-dialog {
+      transition: opacity 0.1s !important;
+      transform: none !important;
+    }
+  }
+  
+  // 优化下拉菜单
+  .el-select-dropdown,
+  .el-dropdown-menu {
+    transition: opacity 0.1s !important;
+  }
+  
+  // 优化输入框聚焦动画
+  .el-input__wrapper {
+    transition: box-shadow 0.1s !important;
+  }
+  
+  // 优化按钮悬停效果
+  .el-button {
+    transition: background-color 0.1s, border-color 0.1s !important;
+    
+    &:hover {
+      transform: none !important;
+    }
+  }
+  
+  // 优化徽章动画
+  .el-badge__content {
+    transition: none !important;
+  }
+  
+  // 通知弹窗优化
+  .el-notification {
+    transition: opacity 0.15s !important;
+  }
+  
+  // 消息提示优化
+  .el-message {
+    transition: opacity 0.15s !important;
+  }
+}
+
+// ==================== iOS 特殊优化 ====================
+
+html.is-ios {
+  // 修复iOS键盘弹出时的布局问题
+  body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #app {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  // 增大触摸目标区域
+  .el-button,
+  .el-menu-item,
+  .navbar-icon,
+  .collapse-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  // 修复iOS Safari底部栏问题
+  .admin-layout {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  // 防止iOS双击缩放
+  * {
+    touch-action: manipulation;
+  }
+  
+  // 修复输入框字体大小（防止自动缩放）
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+// ==================== 低性能设备优化 ====================
+
+html.is-low-perf {
+  // 完全禁用所有过渡动画
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  // 禁用所有阴影
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  // 使用简单边框替代阴影
+  .page-container,
+  .el-card,
+  .stat-card {
+    border: 1px solid var(--admin-border-color) !important;
+  }
+  
+  // 禁用渐变背景
+  .stat-icon {
+    background: var(--admin-primary) !important;
+  }
+  
+  // 简化背景
+  .layout-bg {
+    display: none !important;
+  }
+}
+
+// ==================== 减少动画偏好 ====================
+
+// 用户明确设置减少动画
+html.reduce-motion {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// 系统设置减少动画
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ==================== Safari暗黑模式特殊处理 ====================
+
+html.is-apple.dark,
+html.is-safari.dark {
+  // Safari暗黑模式下的颜色校正
+  --admin-bg-color: #0d1117;
+  --admin-card-bg: #1c2128;
+  --admin-sidebar-bg: #0d1117;
+  
+  // 确保文字可读性
+  --admin-text-primary: #f0f6fc;
+  --admin-text-regular: #c9d1d9;
+}
+
+// ==================== Safari表单元素修复 ====================
+
+html.is-apple,
+html.is-safari {
+  // 修复Safari下select样式
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  // 修复Safari下日期选择器
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  // 修复Safari下checkbox/radio
+  input[type="checkbox"],
+  input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+// ==================== Safari渲染层优化 ====================
+
+html.is-apple,
+html.is-safari {
+  // 创建独立渲染层以提升性能
+  .sidebar {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  .main-container {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  // 优化固定定位元素
+  .navbar {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  // 优化滚动容器
+  .el-scrollbar__view {
+    transform: translateZ(0);
+  }
+}
+
+// ==================== Safari图片优化 ====================
+
+html.is-apple,
+html.is-safari {
+  img {
+    // 使用硬件加速
+    transform: translateZ(0);
+    // 防止图片闪烁
+    backface-visibility: hidden;
+    // 优化图片渲染
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+// ==================== Safari动画帧率优化 ====================
+
+html.is-apple,
+html.is-safari {
+  // 强制使用 composited layers
+  .animated,
+  [class*="animate-"],
+  .el-loading-mask {
+    transform: translateZ(0);
+    will-change: opacity;
+  }
+  
+  // 限制will-change的使用范围
+  .sidebar,
+  .navbar,
+  .main-content {
+    will-change: auto;
+  }
+}
+
