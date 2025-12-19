@@ -247,7 +247,7 @@ async function personalSign({ walletAddress, message }) {
 }
 
 /**
- * 确保已完成 TokenPocket 签名认证（用于首页自动弹窗）
+ * 确保已完成钱包签名认证（支持所有DApp浏览器钱包）
  * @param {object} options
  * @param {boolean} options.force 强制重新签名
  */
@@ -258,32 +258,41 @@ export async function ensureTokenPocketSignatureAuth(options = {}) {
     try {
       const { force = false } = options
 
+      // Check if in DApp browser environment
       if (!isDAppBrowser()) {
+        console.log('[SignatureAuth] Not in DApp browser, skipping')
         return { success: false, skipped: true, reason: 'not_dapp_browser' }
       }
 
       const walletType = detectWalletType()
-      if (walletType !== 'TokenPocket') {
-        return { success: false, skipped: true, reason: 'not_tokenpocket' }
+      console.log('[SignatureAuth] Wallet type detected:', walletType)
+      
+      // Support all wallet types in DApp browser, not just TokenPocket
+      // Any wallet with ethereum object should work
+      if (!window.ethereum) {
+        console.log('[SignatureAuth] No ethereum object found')
+        return { success: false, skipped: true, reason: 'no_ethereum' }
       }
 
       const walletStore = useWalletStore()
 
-      // 尽量避免直接弹出授权：先尝试读取已授权账户
+      // Step 1: Try to get already authorized accounts first
       if (!walletStore.isConnected || !walletStore.walletAddress) {
         try {
           const ethereum = window.ethereum
           const accounts = await ethereum.request({ method: 'eth_accounts' })
+          console.log('[SignatureAuth] Existing accounts:', accounts)
           if (accounts && accounts.length > 0) {
             walletStore.setWallet(accounts[0], walletType)
           }
         } catch (e) {
-          // ignore
+          console.log('[SignatureAuth] Failed to get existing accounts:', e)
         }
       }
 
-      // 仍未连接则请求连接（会弹出授权）
+      // Step 2: If not connected, request wallet connection (will show wallet popup)
       if (!walletStore.isConnected || !walletStore.walletAddress) {
+        console.log('[SignatureAuth] Requesting wallet connection...')
         const result = await connectWallet()
         if (!result?.success) {
           return { success: false, error: result?.error || '连接钱包失败' }

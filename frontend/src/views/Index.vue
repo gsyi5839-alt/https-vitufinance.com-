@@ -110,16 +110,14 @@ const DAILY_SIGNATURE_KEY = 'daily_signature_date'
 
 /**
  * Check if user is in DApp browser environment
- * Returns true if in TokenPocket or similar wallet browser
+ * Returns true if ethereum object exists (TokenPocket, MetaMask, etc.)
  */
 const isInDAppBrowser = () => {
-  if (!isDAppBrowser()) {
-    return false
-  }
-  // Support all wallet types, not just TokenPocket
-  const walletType = detectWalletType()
-  console.log('[Index] Wallet type detected:', walletType)
-  return walletType !== 'Unknown'
+  // Check if window.ethereum exists (standard for all DApp browsers)
+  const hasDApp = isDAppBrowser()
+  const walletType = hasDApp ? detectWalletType() : 'None'
+  console.log('[Index] DApp browser check:', { hasDApp, walletType, hasEthereum: !!window.ethereum })
+  return hasDApp
 }
 
 /**
@@ -157,25 +155,39 @@ const needsDailySignature = () => {
 
 /**
  * Handle signature confirmation - MUST complete to access page
+ * Will trigger wallet's native signature popup (requires wallet password)
  */
 const handleSignatureConfirm = async () => {
   signatureLoading.value = true
   authError.value = ''
   
+  console.log('[Index] Starting wallet signature process...')
+  
   try {
+    // This will trigger wallet's native signature popup
+    // User needs to enter wallet password to complete signature
     const result = await ensureTokenPocketSignatureAuth({ force: true })
     
+    console.log('[Index] Signature result:', result)
+    
     if (result.success) {
-      // Save today's date as signed
-      const today = new Date().toISOString().split('T')[0]
-      localStorage.setItem(DAILY_SIGNATURE_KEY, today)
+      // Save current timestamp (for precise 24-hour check)
+      const now = Date.now()
+      localStorage.setItem(DAILY_SIGNATURE_KEY, String(now))
       
       // Mark as authenticated - allow access to page
       isAuthenticated.value = true
       showSignaturePopup.value = false
+      
+      console.log('[Index] ✅ Signature successful, access granted')
       ElMessage.success(t('signatureAuthPopup.success') || '签名认证成功')
+    } else if (result.skipped) {
+      // Wallet detection issue - show specific error
+      console.log('[Index] Signature skipped:', result.reason)
+      authError.value = '请在钱包浏览器中打开本网站'
     } else if (result.error) {
       // Show error but keep blocking
+      console.log('[Index] Signature error:', result.error)
       authError.value = result.error
       ElMessage.error(result.error)
     }
@@ -190,32 +202,55 @@ const handleSignatureConfirm = async () => {
 
 /**
  * Initialize signature auth check on page load
+ * Auto-trigger signature if needed
  */
 const initSignatureAuth = async () => {
-  // Delay a bit to let wallet connect first
-  await new Promise(resolve => setTimeout(resolve, 500))
+  console.log('[Index] Initializing signature auth...')
   
-  // Check if in DApp browser
+  // Delay a bit to let wallet environment initialize
+  await new Promise(resolve => setTimeout(resolve, 800))
+  
+  // Check if in DApp browser (TokenPocket, MetaMask, etc.)
   if (isInDAppBrowser()) {
     requiresSignature.value = true
+    console.log('[Index] In DApp browser, checking signature status...')
     
-    // Check if already authenticated today
-    const today = new Date().toISOString().split('T')[0]
-    const lastSignatureDate = localStorage.getItem(DAILY_SIGNATURE_KEY)
+    // Check if already authenticated today (within 24 hours)
+    const lastSignatureTime = localStorage.getItem(DAILY_SIGNATURE_KEY)
+    const now = Date.now()
     
-    if (lastSignatureDate === today) {
-      // Already signed today, allow access
-      isAuthenticated.value = true
-      console.log('[Index] Already authenticated today')
-    } else {
-      // Need to sign - block page access
-      isAuthenticated.value = false
-      console.log('[Index] Signature required - blocking page access')
+    // Use timestamp for precise 24-hour check
+    if (lastSignatureTime) {
+      const timeDiff = now - parseInt(lastSignatureTime, 10)
+      const hoursDiff = timeDiff / (1000 * 60 * 60)
+      
+      console.log('[Index] Last signature:', { 
+        lastTime: new Date(parseInt(lastSignatureTime, 10)).toISOString(),
+        hoursDiff: hoursDiff.toFixed(2)
+      })
+      
+      if (hoursDiff < 24) {
+        // Signed within 24 hours, allow access
+        isAuthenticated.value = true
+        console.log('[Index] ✅ Already authenticated within 24 hours')
+        return
+      }
     }
+    
+    // Need to sign - block page access and auto-trigger signature
+    isAuthenticated.value = false
+    console.log('[Index] ⚠️ Signature required - auto-triggering wallet signature...')
+    
+    // Auto-trigger signature after a short delay
+    setTimeout(() => {
+      handleSignatureConfirm()
+    }, 500)
+    
   } else {
     // Not in DApp browser, allow normal access
     requiresSignature.value = false
     isAuthenticated.value = true
+    console.log('[Index] Not in DApp browser, allowing normal access')
   }
 }
 
