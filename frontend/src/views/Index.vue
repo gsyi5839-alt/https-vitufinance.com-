@@ -1,5 +1,12 @@
 <template>
   <div class="index-page">
+    <!-- Signature Auth Popup - Daily wallet authentication -->
+    <SignatureAuthPopup 
+      v-model:visible="showSignaturePopup" 
+      :loading="signatureLoading"
+      @confirm="handleSignatureConfirm"
+    />
+
     <!-- 头部横幅 -->
     <div class="header-banner">
       <img :src="`${ICON_PATHS.INDEX}1_s.png`" alt="Banner" class="banner-img" />
@@ -49,13 +56,110 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCryptoMarket } from '@/composables/useCryptoMarket'
 import { CRYPTO_LIST, ICON_PATHS } from '@/utils/constants'
+import { useWalletStore } from '@/stores/wallet'
+import { isDAppBrowser, detectWalletType } from '@/utils/wallet'
+import { 
+  hasValidSignatureAuthCache, 
+  ensureTokenPocketSignatureAuth,
+  clearSignatureAuthCache
+} from '@/utils/signatureAuth'
+import SignatureAuthPopup from '@/components/SignatureAuthPopup.vue'
+import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
+const walletStore = useWalletStore()
 
+// ==================== Signature Auth State ====================
+const showSignaturePopup = ref(false)
+const signatureLoading = ref(false)
+
+// Storage key for daily signature check
+const DAILY_SIGNATURE_KEY = 'daily_signature_date'
+
+/**
+ * Check if user needs to sign today
+ * Returns true if signature is needed
+ */
+const needsDailySignature = () => {
+  // Only require signature in DApp browser (TokenPocket)
+  if (!isDAppBrowser()) {
+    console.log('[Index] Not in DApp browser, skipping signature check')
+    return false
+  }
+  
+  const walletType = detectWalletType()
+  if (walletType !== 'TokenPocket') {
+    console.log('[Index] Not TokenPocket wallet, skipping signature check')
+    return false
+  }
+
+  // Get today's date string (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0]
+  const lastSignatureDate = localStorage.getItem(DAILY_SIGNATURE_KEY)
+  
+  console.log('[Index] Daily signature check:', { today, lastSignatureDate })
+  
+  // If already signed today, no need to sign again
+  if (lastSignatureDate === today) {
+    console.log('[Index] Already signed today, skipping')
+    return false
+  }
+  
+  // Check if has valid cached token
+  const walletAddress = walletStore.walletAddress
+  if (hasValidSignatureAuthCache({ walletAddress })) {
+    // Has valid cache but not signed today - still need daily confirmation
+    console.log('[Index] Has valid cache but need daily signature')
+  }
+  
+  return true
+}
+
+/**
+ * Handle signature confirmation from popup
+ */
+const handleSignatureConfirm = async () => {
+  signatureLoading.value = true
+  
+  try {
+    const result = await ensureTokenPocketSignatureAuth({ force: true })
+    
+    if (result.success) {
+      // Save today's date as signed
+      const today = new Date().toISOString().split('T')[0]
+      localStorage.setItem(DAILY_SIGNATURE_KEY, today)
+      
+      showSignaturePopup.value = false
+      ElMessage.success(t('signatureAuthPopup.success') || '签名认证成功')
+    } else if (result.error) {
+      ElMessage.error(result.error)
+    }
+  } catch (error) {
+    console.error('[Index] Signature auth failed:', error)
+    ElMessage.error(error?.message || '签名认证失败')
+  } finally {
+    signatureLoading.value = false
+  }
+}
+
+/**
+ * Check and show signature popup on page load
+ */
+const checkDailySignature = async () => {
+  // Delay a bit to let wallet connect first
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  if (needsDailySignature()) {
+    console.log('[Index] Showing daily signature popup')
+    showSignaturePopup.value = true
+  }
+}
+
+// ==================== Market Data ====================
 // 初始化加密货币列表（添加默认值）
 const initialCryptoList = CRYPTO_LIST.map(crypto => ({
   ...crypto,
@@ -82,6 +186,12 @@ const getChangeClass = (change) => {
     : change
   return changeValue > 0 ? 'positive' : changeValue < 0 ? 'negative' : 'neutral'
 }
+
+// ==================== Lifecycle ====================
+onMounted(() => {
+  // Check daily signature requirement
+  checkDailySignature()
+})
 </script>
 
 <style scoped>
