@@ -1,0 +1,184 @@
+# ============================================================
+# VituFinance Internal Proxy Configuration
+# For Clash Verge / Clash Meta / Clash for Windows
+# ============================================================
+
+# Mixed port for HTTP/SOCKS proxy
+mixed-port: 7890
+# Allow connections from LAN
+allow-lan: true
+# Clash mode: rule, global, direct
+mode: rule
+# Log level: silent, error, warning, info, debug
+log-level: info
+# External controller for REST API
+external-controller: 127.0.0.1:9090
+
+# DNS settings
+dns:
+  enable: true
+  ipv6: false
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+    - 223.5.5.5
+  fallback:
+    - https://dns.google/dns-query
+    - https://cloudflare-dns.com/dns-query
+
+# ============================================================
+# Proxy Servers - Add your own servers here
+# ============================================================
+proxies:
+  # Example Shadowsocks server
+  - name: "🇭🇰 Hong Kong 01"
+    type: ss
+    server: your-server-ip.com
+    port: 443
+    cipher: aes-128-gcm
+    password: your-password-here
+    udp: true
+
+  # Example Trojan server
+  - name: "🇺🇸 USA 01"
+    type: trojan
+    server: your-trojan-server.com
+    port: 443
+    password: your-trojan-password
+    udp: true
+    sni: your-trojan-server.com
+    skip-cert-verify: false
+
+  # Example VMess server
+  - name: "🇯🇵 Japan 01"
+    type: vmess
+    server: your-vmess-server.com
+    port: 443
+    uuid: your-uuid-here
+    alterId: 0
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /path
+      headers:
+        Host: your-vmess-server.com
+
+  # Example Hysteria2 server
+  - name: "🇸🇬 Singapore HY2"
+    type: hysteria2
+    server: your-hysteria-server.com
+    port: 443
+    password: your-hysteria-password
+    sni: your-hysteria-server.com
+    skip-cert-verify: false
+
+# ============================================================
+# Proxy Groups
+# ============================================================
+proxy-groups:
+  # Main selector
+  - name: "🚀 节点选择"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 Hong Kong 01"
+      - "🇺🇸 USA 01"
+      - "🇯🇵 Japan 01"
+      - "🇸🇬 Singapore HY2"
+      - DIRECT
+
+  # Auto select based on latency
+  - name: "♻️ 自动选择"
+    type: url-test
+    proxies:
+      - "🇭🇰 Hong Kong 01"
+      - "🇺🇸 USA 01"
+      - "🇯🇵 Japan 01"
+      - "🇸🇬 Singapore HY2"
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+
+  # Streaming services
+  - name: "📺 流媒体"
+    type: select
+    proxies:
+      - "🚀 节点选择"
+      - "🇭🇰 Hong Kong 01"
+      - "🇺🇸 USA 01"
+      - "🇯🇵 Japan 01"
+      - DIRECT
+
+  # Telegram
+  - name: "📲 电报消息"
+    type: select
+    proxies:
+      - "🚀 节点选择"
+      - "🇭🇰 Hong Kong 01"
+      - "🇸🇬 Singapore HY2"
+      - DIRECT
+
+  # Final fallback
+  - name: "🐟 漏网之鱼"
+    type: select
+    proxies:
+      - "🚀 节点选择"
+      - DIRECT
+
+# ============================================================
+# Rules - Traffic routing rules
+# ============================================================
+rules:
+  # Local network
+  - DOMAIN-SUFFIX,local,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,100.64.0.0/10,DIRECT
+
+  # Telegram
+  - DOMAIN-SUFFIX,telegram.org,📲 电报消息
+  - DOMAIN-SUFFIX,t.me,📲 电报消息
+  - IP-CIDR,91.108.0.0/16,📲 电报消息
+  - IP-CIDR,149.154.160.0/20,📲 电报消息
+
+  # Google
+  - DOMAIN-SUFFIX,google.com,🚀 节点选择
+  - DOMAIN-SUFFIX,googleapis.com,🚀 节点选择
+  - DOMAIN-SUFFIX,youtube.com,📺 流媒体
+  - DOMAIN-SUFFIX,ytimg.com,📺 流媒体
+
+  # Streaming
+  - DOMAIN-SUFFIX,netflix.com,📺 流媒体
+  - DOMAIN-SUFFIX,nflxvideo.net,📺 流媒体
+  - DOMAIN-SUFFIX,disney.com,📺 流媒体
+  - DOMAIN-SUFFIX,disneyplus.com,📺 流媒体
+
+  # Social Media
+  - DOMAIN-SUFFIX,twitter.com,🚀 节点选择
+  - DOMAIN-SUFFIX,x.com,🚀 节点选择
+  - DOMAIN-SUFFIX,facebook.com,🚀 节点选择
+  - DOMAIN-SUFFIX,instagram.com,🚀 节点选择
+
+  # AI Services
+  - DOMAIN-SUFFIX,openai.com,🚀 节点选择
+  - DOMAIN-SUFFIX,claude.ai,🚀 节点选择
+  - DOMAIN-SUFFIX,anthropic.com,🚀 节点选择
+
+  # China direct
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,taobao.com,DIRECT
+  - DOMAIN-SUFFIX,aliyun.com,DIRECT
+  - DOMAIN-SUFFIX,qq.com,DIRECT
+  - DOMAIN-SUFFIX,weixin.qq.com,DIRECT
+  - GEOIP,CN,DIRECT
+
+  # Final rule
+  - MATCH,🐟 漏网之鱼
+

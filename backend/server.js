@@ -43,6 +43,9 @@ import luckyWheelRoutes, {
     addLuckyPoints 
 } from './src/routes/luckyWheelRoutes.js';
 
+// 导入代理订阅路由（内部VPN使用）
+import proxySubscriptionRoutes from './src/routes/proxy/subscriptionRoutes.js';
+
 // 导入模拟金额自动增长定时任务
 import { startSimulatedGrowthCron, getPageTotalAmount } from './src/cron/simulatedGrowthCron.js';
 
@@ -6050,6 +6053,9 @@ app.post('/api/error-log', async (req, res) => {
 
 // ==================== 抽奖转盘路由 ====================
 app.use('/api/lucky-wheel', luckyWheelRoutes);
+
+// ==================== 代理订阅路由（内部VPN使用）====================
+app.use('/api/proxy', proxySubscriptionRoutes);
 
 // ==================== 管理系统路由 ====================
 app.use('/api/admin', adminRoutes);
