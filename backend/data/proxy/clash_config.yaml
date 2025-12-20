@@ -1,20 +1,15 @@
 # ============================================================
 # VituFinance Internal Proxy Configuration
 # For Clash Verge / Clash Meta / Clash for Windows
+# Real nodes from LanPangYun subscription
 # ============================================================
 
-# Mixed port for HTTP/SOCKS proxy
-mixed-port: 7890
-# Allow connections from LAN
+mixed-port: 7897
 allow-lan: true
-# Clash mode: rule, global, direct
 mode: rule
-# Log level: silent, error, warning, info, debug
 log-level: info
-# External controller for REST API
 external-controller: 127.0.0.1:9090
 
-# DNS settings
 dns:
   enable: true
   ipv6: false
@@ -30,114 +25,191 @@ dns:
     - https://cloudflare-dns.com/dns-query
 
 # ============================================================
-# Proxy Servers - Singapore nodes as primary
+# Real Proxy Servers - LanPangYun Nodes
 # ============================================================
 proxies:
-  # Singapore - Primary nodes
-  - name: "🇸🇬 新加坡 01"
+  # 🇸🇬 Singapore Nodes
+  - name: "🇸🇬 新加坡01"
     type: ss
-    server: sg-server-01.example.com
-    port: 443
-    cipher: aes-128-gcm
-    password: your-password-here
+    server: shrimp-door-9527.gym0boy.com
+    port: 57258
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
     udp: true
 
-  - name: "🇸🇬 新加坡 02"
+  - name: "🇸🇬 新加坡02"
     type: ss
-    server: sg-server-02.example.com
-    port: 443
-    cipher: aes-128-gcm
-    password: your-password-here
+    server: shrimp-door-9527.gym0boy.com
+    port: 57259
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
     udp: true
 
-  - name: "🇸🇬 新加坡 HY2"
-    type: hysteria2
-    server: sg-hysteria.example.com
-    port: 443
-    password: your-hysteria-password
-    sni: sg-hysteria.example.com
-    skip-cert-verify: false
-
-  # Hong Kong - Backup
-  - name: "🇭🇰 香港 01"
+  - name: "🇸🇬 新加坡03"
     type: ss
-    server: hk-server.example.com
-    port: 443
-    cipher: aes-128-gcm
-    password: your-password-here
+    server: shrimp-door-9527.gym0boy.com
+    port: 47436
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
     udp: true
 
-  # Japan - Backup
-  - name: "🇯🇵 日本 01"
+  - name: "🇸🇬 新加坡04"
     type: ss
-    server: jp-server.example.com
-    port: 443
-    cipher: aes-128-gcm
-    password: your-password-here
+    server: shrimp-door-9527.gym0boy.com
+    port: 47437
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
     udp: true
 
-  # USA - Backup
-  - name: "🇺🇸 美国 01"
-    type: trojan
-    server: us-server.example.com
-    port: 443
-    password: your-trojan-password
+  - name: "🇸🇬 新加坡05"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 20620
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
     udp: true
-    sni: us-server.example.com
-    skip-cert-verify: false
+
+  # 🇭🇰 Hong Kong Nodes
+  - name: "🇭🇰 香港01"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 55551
+    cipher: aes-128-gcm
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇭🇰 香港02"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 55552
+    cipher: aes-128-gcm
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇭🇰 香港03"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 55553
+    cipher: aes-128-gcm
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  # 🇯🇵 Japan Nodes
+  - name: "🇯🇵 日本01"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 44816
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇯🇵 日本02"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 44817
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇯🇵 日本03"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 47427
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  # 🇨🇳 Taiwan Nodes
+  - name: "🇨🇳 台湾01"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 44723
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇨🇳 台湾02"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 47424
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  # 🇺🇸 USA Nodes
+  - name: "🇺🇸 美国01"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 47845
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
+
+  - name: "🇺🇸 美国02"
+    type: ss
+    server: shrimp-door-9527.gym0boy.com
+    port: 47846
+    cipher: chacha20-ietf-poly1305
+    password: "7616fc88-860a-4f7f-ad8f-b659c30ec8ef"
+    udp: true
 
 # ============================================================
 # Proxy Groups - Singapore as default
 # ============================================================
 proxy-groups:
-  # Main selector - Singapore first
   - name: "🚀 节点选择"
     type: select
     proxies:
-      - "🇸🇬 新加坡 01"
-      - "🇸🇬 新加坡 02"
-      - "🇸🇬 新加坡 HY2"
+      - "🇸🇬 新加坡01"
+      - "🇸🇬 新加坡02"
+      - "🇸🇬 新加坡03"
+      - "🇸🇬 新加坡04"
+      - "🇸🇬 新加坡05"
       - "♻️ 自动选择"
-      - "🇭🇰 香港 01"
-      - "🇯🇵 日本 01"
-      - "🇺🇸 美国 01"
+      - "🇭🇰 香港01"
+      - "🇭🇰 香港02"
+      - "🇭🇰 香港03"
+      - "🇯🇵 日本01"
+      - "🇯🇵 日本02"
+      - "🇯🇵 日本03"
+      - "🇨🇳 台湾01"
+      - "🇨🇳 台湾02"
+      - "🇺🇸 美国01"
+      - "🇺🇸 美国02"
       - DIRECT
 
-  # Auto select based on latency (Singapore priority)
   - name: "♻️ 自动选择"
     type: url-test
     proxies:
-      - "🇸🇬 新加坡 01"
-      - "🇸🇬 新加坡 02"
-      - "🇸🇬 新加坡 HY2"
-      - "🇭🇰 香港 01"
-      - "🇯🇵 日本 01"
-      - "🇺🇸 美国 01"
+      - "🇸🇬 新加坡01"
+      - "🇸🇬 新加坡02"
+      - "🇸🇬 新加坡03"
+      - "🇭🇰 香港01"
+      - "🇭🇰 香港02"
+      - "🇯🇵 日本01"
+      - "🇯🇵 日本02"
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
 
-  # Streaming services
   - name: "📺 流媒体"
     type: select
     proxies:
       - "🚀 节点选择"
-      - "🇸🇬 新加坡 01"
-      - "🇭🇰 香港 01"
-      - "🇯🇵 日本 01"
-      - "🇺🇸 美国 01"
+      - "🇸🇬 新加坡01"
+      - "🇭🇰 香港01"
+      - "🇯🇵 日本01"
+      - "🇺🇸 美国01"
       - DIRECT
 
-  # Telegram
   - name: "📲 电报消息"
     type: select
     proxies:
       - "🚀 节点选择"
-      - "🇸🇬 新加坡 01"
-      - "🇭🇰 香港 01"
+      - "🇸🇬 新加坡01"
+      - "🇭🇰 香港01"
       - DIRECT
 
-  # Final fallback
   - name: "🐟 漏网之鱼"
     type: select
     proxies:
@@ -145,10 +217,9 @@ proxy-groups:
       - DIRECT
 
 # ============================================================
-# Rules - Traffic routing rules
+# Rules
 # ============================================================
 rules:
-  # Local network
   - DOMAIN-SUFFIX,local,DIRECT
   - IP-CIDR,127.0.0.0/8,DIRECT
   - IP-CIDR,172.16.0.0/12,DIRECT
@@ -156,36 +227,30 @@ rules:
   - IP-CIDR,10.0.0.0/8,DIRECT
   - IP-CIDR,100.64.0.0/10,DIRECT
 
-  # Telegram
   - DOMAIN-SUFFIX,telegram.org,📲 电报消息
   - DOMAIN-SUFFIX,t.me,📲 电报消息
   - IP-CIDR,91.108.0.0/16,📲 电报消息
   - IP-CIDR,149.154.160.0/20,📲 电报消息
 
-  # Google
   - DOMAIN-SUFFIX,google.com,🚀 节点选择
   - DOMAIN-SUFFIX,googleapis.com,🚀 节点选择
   - DOMAIN-SUFFIX,youtube.com,📺 流媒体
   - DOMAIN-SUFFIX,ytimg.com,📺 流媒体
 
-  # Streaming
   - DOMAIN-SUFFIX,netflix.com,📺 流媒体
   - DOMAIN-SUFFIX,nflxvideo.net,📺 流媒体
   - DOMAIN-SUFFIX,disney.com,📺 流媒体
   - DOMAIN-SUFFIX,disneyplus.com,📺 流媒体
 
-  # Social Media
   - DOMAIN-SUFFIX,twitter.com,🚀 节点选择
   - DOMAIN-SUFFIX,x.com,🚀 节点选择
   - DOMAIN-SUFFIX,facebook.com,🚀 节点选择
   - DOMAIN-SUFFIX,instagram.com,🚀 节点选择
 
-  # AI Services
   - DOMAIN-SUFFIX,openai.com,🚀 节点选择
   - DOMAIN-SUFFIX,claude.ai,🚀 节点选择
   - DOMAIN-SUFFIX,anthropic.com,🚀 节点选择
 
-  # China direct
   - DOMAIN-SUFFIX,cn,DIRECT
   - DOMAIN-SUFFIX,baidu.com,DIRECT
   - DOMAIN-SUFFIX,taobao.com,DIRECT
@@ -194,6 +259,4 @@ rules:
   - DOMAIN-SUFFIX,weixin.qq.com,DIRECT
   - GEOIP,CN,DIRECT
 
-  # Final rule
   - MATCH,🐟 漏网之鱼
-
