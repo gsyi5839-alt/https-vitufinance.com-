@@ -119,6 +119,16 @@ import {
     detectSqlInjection
 } from './src/security/sqlInjectionProtection.js';
 
+// Enhanced security protection module - 2024-12-21
+import {
+    initEnhancedProtection,
+    isIPBlocked,
+    blockIP as enhancedBlockIP,
+    recordAttack,
+    validateRequest,
+    enhancedProtectionMiddleware
+} from './src/security/enhancedProtection.js';
+
 // 审计日志模块导入
 import {
     auditBalanceChange,
@@ -1698,6 +1708,10 @@ app.get('/api/user/withdrawals', async (req, res) => {
         const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
         await initSecurityModules(dbQuery, projectRoot);
         console.log('[Security] 综合安全防护系统已初始化');
+        
+        // Initialize enhanced protection module - 2024-12-21
+        await initEnhancedProtection(dbQuery);
+        console.log('[Security] 增强安全防护已初始化');
     } catch (error) {
         console.error('[Security] 安全模块初始化失败:', error.message);
     }

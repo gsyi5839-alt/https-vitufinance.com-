@@ -1,9 +1,9 @@
 {
-  "admin": {
-    "username": "admin",
-    "password": "$2a$12$JdgEP3qMUFp5puNGJ5GxHeYW2eJ2X1/qiSadIwo/RYmWE142Yl9q2",
+  "1019683427": {
+    "username": "1019683427",
+    "password": "$2a$12$hv/F6iE2wYe/JNv0AVyn3O7Ffr8ZC2DoDXrHsQDhuuQxnEsEBKy3u",
     "role": "super_admin",
     "createdAt": "2025-12-19T15:49:11.864Z",
-    "updatedAt": "2025-12-20T04:30:00.000Z"
+    "updatedAt": "2025-12-21T11:30:00.000Z"
   }
 }
