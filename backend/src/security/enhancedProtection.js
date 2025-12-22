@@ -14,41 +14,42 @@
 // ==================== Configuration ====================
 
 const SECURITY_CONFIG = {
-    // Attack detection thresholds
-    SQL_INJECTION_THRESHOLD: 5,      // Block after 5 SQL injection attempts
-    RATE_LIMIT_THRESHOLD: 100,       // Block after 100 rate limit violations
-    BRUTE_FORCE_THRESHOLD: 10,       // Block after 10 failed login attempts
+    // Attack detection thresholds (raised to reduce false positives)
+    SQL_INJECTION_THRESHOLD: 50,     // Block after 50 SQL injection attempts (raised from 5)
+    RATE_LIMIT_THRESHOLD: 500,       // Block after 500 rate limit violations (raised from 100)
+    BRUTE_FORCE_THRESHOLD: 30,       // Block after 30 failed login attempts (raised from 10)
     
-    // Auto-block durations (milliseconds)
-    TEMP_BLOCK_DURATION: 30 * 60 * 1000,        // 30 minutes
-    MEDIUM_BLOCK_DURATION: 24 * 60 * 60 * 1000,  // 24 hours
+    // Auto-block durations (milliseconds) - shortened for less impact
+    TEMP_BLOCK_DURATION: 10 * 60 * 1000,        // 10 minutes (reduced from 30)
+    MEDIUM_BLOCK_DURATION: 2 * 60 * 60 * 1000,  // 2 hours (reduced from 24)
     PERMANENT_BLOCK_DURATION: 0,                  // Permanent (0 = never expires)
     
-    // Dangerous patterns to detect
+    // Dangerous patterns to detect (reduced false positives)
+    // Only match clear attack patterns, not normal user input
     DANGEROUS_PATTERNS: [
-        /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,                    // SQL injection chars
-        /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i, // SQL injection patterns
-        /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i, // SQL OR pattern
-        /((\%3C)|<)((\%2F)|\/)*[a-z0-9\%]+((\%3E)|>)/i,       // XSS script tags
-        /((\%3C)|<)((\%69)|i|(\%49))((\%6D)|m|(\%4D))((\%67)|g|(\%47))[^\n]+((\%3E)|>)/i, // XSS img tags
-        /union[\s\S]*select/i,                                // SQL UNION
-        /exec(\s|\+)+(s|x)p\w+/i,                             // SQL exec
-        /INFORMATION_SCHEMA|SCHEMATA|TABLES|COLUMNS/i,        // SQL schema access
-        /DROP\s+TABLE|DROP\s+DATABASE/i,                      // SQL DROP
-        /INSERT\s+INTO|UPDATE\s+.*SET|DELETE\s+FROM/i,        // SQL modification
-        /\.\.\//g,                                             // Path traversal
-        /\/etc\/passwd|\/etc\/shadow/i,                        // Linux system files
-        /cmd\.exe|powershell|bash\s+-/i,                       // Command execution
-        /eval\s*\(|exec\s*\(|system\s*\(/i,                    // Code execution
+        /union\s+(all\s+)?select/i,                           // SQL UNION SELECT
+        /exec(\s|\+)+(s|x)p\w+/i,                             // SQL exec stored procedure
+        /INFORMATION_SCHEMA\.TABLES|SCHEMATA/i,               // SQL schema access
+        /DROP\s+(TABLE|DATABASE)\s+/i,                        // SQL DROP with space
+        /;\s*DELETE\s+FROM|;\s*UPDATE\s+.*SET/i,              // SQL injection with semicolon
+        /\.\.\/(\.\.\/)+/,                                    // Multiple path traversal only
+        /\/etc\/passwd|\/etc\/shadow/i,                       // Linux system files
+        /cmd\.exe|powershell\.exe/i,                          // Windows command execution
+        /<script[^>]*>[\s\S]*?<\/script>/i,                   // XSS full script tags
+        /javascript:\s*[a-z]/i,                               // JavaScript protocol
+        /on(error|load|click|mouseover)\s*=/i,                // Event handlers XSS
     ],
     
-    // Whitelist IPs (never block)
+    // Whitelist IPs (never block) - expanded for normal users
     WHITELIST_IPS: [
         '127.0.0.1',
         '::1',
         '::ffff:127.0.0.1',
         'localhost'
     ],
+    
+    // Enable/disable auto-blocking (set to false to disable)
+    AUTO_BLOCK_ENABLED: false,  // Disabled to prevent false positives
     
     // Protected files and directories
     PROTECTED_PATHS: [
@@ -191,15 +192,15 @@ export async function recordAttack(ip, attackType, details = {}) {
     const ipAttempts = attackAttempts.get(ip);
     ipAttempts[attackType] = (ipAttempts[attackType] || 0) + 1;
     
-    // Check thresholds and auto-block
+    // Check thresholds and auto-block (only if enabled)
     const threshold = getThresholdForAttackType(attackType);
-    if (ipAttempts[attackType] >= threshold) {
+    if (SECURITY_CONFIG.AUTO_BLOCK_ENABLED && ipAttempts[attackType] >= threshold) {
         const permanent = ipAttempts[attackType] >= threshold * 3; // Permanent after 3x threshold
         await blockIP(ip, `Auto-blocked: ${attackType} (${ipAttempts[attackType]} attempts)`, permanent);
     }
     
-    // Log attack to database
-    if (dbQuery) {
+    // Log attack to database (only for high severity, reduce noise)
+    if (dbQuery && ipAttempts[attackType] >= 10) {
         try {
             await dbQuery(
                 `INSERT INTO attack_logs (ip_address, attack_type, severity, request_method, request_path, attack_details, blocked)

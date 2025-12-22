@@ -23,10 +23,11 @@ const router = express.Router();
 import { sensitiveLimiter, quantifyLimiter } from '../middleware/security.js';
 
 // 导入推荐奖励数学工具（统一管理奖励比例）
+// 2024-12-22: 新配置，降低比例防止亏损
 import {
-    CEX_REFERRAL_RATES,            // CEX 8级奖励比例 [0.30, 0.10, 0.05, 0.01, 0.01, 0.01, 0.01, 0.01]
-    DEX_REFERRAL_RATES,            // DEX 3级奖励比例 [0.05, 0.03, 0.02]
-    calculateLevelReward,          // 单级奖励计算: amount * rate
+    CEX_REFERRAL_RATES,            // CEX 8级奖励比例 [0.08, 0.04, 0.02, 0.005×5] = 16.5%
+    DEX_REFERRAL_RATES,            // DEX 3级奖励比例 [0.02, 0.01, 0.005] = 3.5%
+    calculateLevelReward,          // 单级奖励计算: amount * rate (含安全上限50U)
     calculateCexRewards,           // CEX完整奖励计算
     calculateDexRewards,           // DEX完整奖励计算
     formatAmount                   // 格式化金额显示
@@ -51,7 +52,8 @@ import {
     checkQuantifyStatus,
     isRobotExpired,
     getRobotList,
-    hoursToDays
+    hoursToDays,
+    SAFETY_LIMITS
 } from '../config/robotConfig.js';
 
 // 团队分红：达标后随时自动发放（当日一次）
@@ -313,10 +315,18 @@ router.post('/api/robot/purchase', sensitiveLimiter, async (req, res) => {
         const startTime = new Date();
         const endTime = calculateEndTime(robot_name, startTime);
         
-        // 10. 计算 High 机器人到期返还金额
+        // 10. 计算 DEX/High 机器人到期返还金额（本金+利息）
+        // DEX/High 机器人只量化一次，到期返本返息
         let expectedReturn = 0;
         if (config.robot_type === 'high') {
+            // High 机器人使用 total_return_rate 计算
             expectedReturn = calculateHighRobotReturn(robot_name, robotPrice);
+        } else if (config.robot_type === 'dex') {
+            // DEX 机器人：本金 + (本金 × 日利率 × 天数)
+            const days = config.duration_hours / 24;
+            const totalProfit = robotPrice * (config.daily_profit / 100) * days;
+            expectedReturn = robotPrice + totalProfit;
+            console.log(`[Purchase] DEX robot ${robot_name}: price=${robotPrice}, days=${days}, daily_profit=${config.daily_profit}%, expected_return=${expectedReturn.toFixed(4)}`);
         }
         
         // 11. 扣除用户余额
@@ -389,8 +399,12 @@ router.post('/api/robot/purchase', sensitiveLimiter, async (req, res) => {
         fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'robotRoutes.js:360',message:'Robot purchase - final balance',data:{wallet:walletAddr.slice(0,10),balanceAfter:updatedBalance.length>0?parseFloat(updatedBalance[0].usdt_balance):null,expectedBalance:currentBalance-robotPrice},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
         
-        // 14. DEX机器人购买奖励（启动金额的3级奖励：5%-3%-2%）
-        if (config.robot_type === 'dex') {
+        // 14. 立即发放推荐奖励（购买时立即发放，不等量化）
+        // CEX/Grid/High机器人: 按购买金额发放8级奖励 (16.5%)
+        // DEX机器人: 按购买金额发放3级奖励 (3.5%)
+        if (config.robot_type === 'cex' || config.robot_type === 'grid' || config.robot_type === 'high') {
+            await distributeCexPurchaseRewards(walletAddr, robot_name, robotPrice, robotPurchaseId);
+        } else if (config.robot_type === 'dex') {
             await distributeDexPurchaseRewards(walletAddr, robot_name, robotPrice, robotPurchaseId);
         }
         
@@ -540,7 +554,7 @@ router.post('/api/robot/quantify', quantifyLimiter, async (req, res) => {
             });
         }
         
-        // 4. 处理 High 机器人（只量化一次）
+        // 4. 处理 DEX/High 机器人（只量化一次，到期返本返息）
         if (config.single_quantify) {
             // 更新 is_quantified 标记
             await dbQuery(
@@ -550,14 +564,14 @@ router.post('/api/robot/quantify', quantifyLimiter, async (req, res) => {
                 [robotId]
             );
             
-            console.log(`[Quantify] High robot ${robot.robot_name} quantified by ${walletAddr.slice(0, 10)}...`);
+            console.log(`[Quantify] ${robot.robot_type.toUpperCase()} robot ${robot.robot_name} quantified by ${walletAddr.slice(0, 10)}..., expected_return=${robot.expected_return}`);
             
             return res.json({
                 success: true,
-                message: 'Quantification completed! Profit will be returned at maturity.',
+                message: 'Quantification completed! Principal and profit will be returned at maturity.',
                 data: {
                     earnings: '0.0000',
-                    robot_type: 'high',
+                    robot_type: robot.robot_type,
                     is_quantified: true,
                     expected_return: parseFloat(robot.expected_return).toFixed(4),
                     end_time: robot.end_time
@@ -566,20 +580,21 @@ router.post('/api/robot/quantify', quantifyLimiter, async (req, res) => {
         }
         
         // 5. 处理 CEX/DEX/Grid 机器人（每次量化获得收益）
+        // calculateQuantifyEarnings 已经内置了安全限制（来自 SAFETY_LIMITS）
         let earnings = calculateQuantifyEarnings(robot.robot_name, parseFloat(robot.price));
         
-        // 安全检查：单次量化收益不能超过本金的5%（防止配置错误导致异常收益）
-        const maxEarnings = parseFloat(robot.price) * 0.05;
-        if (earnings > maxEarnings) {
-            console.warn(`[Quantify Security] Earnings ${earnings} exceeds max ${maxEarnings}, capping to max`);
-            earnings = maxEarnings;
+        // 安全检查：使用配置中的安全限制（MAX_SINGLE_EARNING = 2500 USDT）
+        // 注意：calculateQuantifyEarnings 已经应用了 SAFETY_LIMITS.MAX_SINGLE_EARNING
+        // 这里的检查是最后一道防线，使用配置中的限制
+        const absoluteMaxEarnings = SAFETY_LIMITS.MAX_SINGLE_EARNING || 2500;
+        if (earnings > absoluteMaxEarnings) {
+            console.warn(`[Quantify Security] Earnings ${earnings} exceeds config max ${absoluteMaxEarnings}, capping`);
+            earnings = absoluteMaxEarnings;
         }
         
-        // 安全检查：单次量化收益不能超过500 USDT
-        const absoluteMaxEarnings = 500;
-        if (earnings > absoluteMaxEarnings) {
-            console.warn(`[Quantify Security] Earnings ${earnings} exceeds absolute max ${absoluteMaxEarnings}, capping`);
-            earnings = absoluteMaxEarnings;
+        // 记录高额收益警告（但不截断）
+        if (earnings > SAFETY_LIMITS.EARNING_WARNING_THRESHOLD) {
+            console.log(`[Quantify] High earnings: ${robot.robot_name}, amount=${earnings.toFixed(2)} USDT`);
         }
         
         // 6. 插入量化记录
@@ -614,73 +629,9 @@ router.post('/api/robot/quantify', quantifyLimiter, async (req, res) => {
             [walletAddr, robotId, robot.robot_name, earnings]
         );
         
-        // 10. 发放CEX推荐奖励（8级50%）- 关键修复！
-        // 根据文档: CEX机器人量化收益的50%分给8级推荐人
-        // 比例: [30%, 10%, 5%, 1%, 1%, 1%, 1%, 1%]
-        try {
-            // 使用数学工具导入的CEX奖励比例
-            const maxLevel = CEX_REFERRAL_RATES.length; // 8级
-            let currentWallet = walletAddr;
-            let totalDistributed = 0;
-            
-            // 使用数学工具计算预期奖励分配（用于日志）
-            const expectedRewards = calculateCexRewards(earnings);
-            console.log(`[Quantify Reward Math] ${expectedRewards.summary}`);
-            
-            for (let level = 1; level <= maxLevel; level++) {
-                // 查找当前用户的上级
-                const referrerResult = await dbQuery(
-                    'SELECT referrer_address FROM user_referrals WHERE wallet_address = ? AND referrer_address IS NOT NULL',
-                    [currentWallet]
-                );
-                
-                if (referrerResult.length === 0 || !referrerResult[0].referrer_address) {
-                    // 没有上级了，停止
-                    break;
-                }
-                
-                const referrerAddress = referrerResult[0].referrer_address;
-                // 使用数学工具计算单级奖励
-                const rewardRate = CEX_REFERRAL_RATES[level - 1];
-                const rewardAmount = calculateLevelReward(earnings, rewardRate);
-                
-                // 确保上级用户有余额记录
-                await dbQuery(
-                    `INSERT IGNORE INTO user_balances (wallet_address, usdt_balance, wld_balance, created_at, updated_at) 
-                    VALUES (?, 0, 0, NOW(), NOW())`,
-                    [referrerAddress]
-                );
-                
-                // 增加上级的余额
-                await dbQuery(
-                    `UPDATE user_balances 
-                    SET usdt_balance = usdt_balance + ?, updated_at = NOW() 
-                    WHERE wallet_address = ?`,
-                    [rewardAmount, referrerAddress]
-                );
-                
-                // 记录推荐奖励（source_type = 'quantify' 表示量化收益奖励）
-                await dbQuery(
-                    `INSERT INTO referral_rewards 
-                    (wallet_address, from_wallet, level, reward_rate, reward_amount, source_type, source_id, robot_name, source_amount, created_at) 
-                    VALUES (?, ?, ?, ?, ?, 'quantify', ?, ?, ?, NOW())`,
-                    [referrerAddress, walletAddr, level, rewardRate * 100, rewardAmount, robotId, robot.robot_name, earnings]
-                );
-                
-                totalDistributed += rewardAmount;
-                console.log(`[Quantify Reward] Level ${level}: ${rewardAmount.toFixed(4)} USDT (${rewardRate * 100}%) to ${referrerAddress.slice(0, 10)}...`);
-                
-                // 移动到下一级
-                currentWallet = referrerAddress;
-            }
-            
-            if (totalDistributed > 0) {
-                console.log(`[Quantify Reward] Total distributed: ${totalDistributed.toFixed(4)} USDT for robot ${robotId}`);
-            }
-        } catch (referralError) {
-            // 推荐奖励分发失败不影响用户量化成功
-            console.error('[Quantify Reward] 推荐奖励分发失败（不影响用户量化）:', referralError.message);
-        }
+        // 10. 推荐奖励已在购买时立即发放，量化时不再发放
+        // 注意：推荐人奖励已改为购买时立即发放（source_type = 'purchase'）
+        console.log(`[Quantify] Referral rewards already distributed at purchase for robot ${robotId}`);
         
         // 11. 获取更新后的数据
         const updatedRobot = await dbQuery(
@@ -1113,6 +1064,10 @@ async function processExpiredRobots(walletAddr, robotTypes = ['cex', 'dex', 'gri
  * 处理单个到期机器人
  * @param {object} robot - 机器人记录
  * @param {string} walletAddr - 钱包地址
+ * 
+ * 到期规则：
+ * - CEX/Grid：每天量化，到期只返还本金（利息已在量化时发放）
+ * - DEX/High：只量化一次，到期返还本金+利息
  */
 async function processOneExpiredRobot(robot, walletAddr) {
     try {
@@ -1126,10 +1081,11 @@ async function processOneExpiredRobot(robot, walletAddr) {
         let profitAmount = 0;
         
         // 根据机器人类型处理返还
-        if (robot.robot_type === 'high') {
-            // High 机器人：必须已量化才返还
+        // DEX 和 High 机器人：只量化一次，到期返本返息
+        if (robot.robot_type === 'high' || robot.robot_type === 'dex') {
+            // DEX/High 机器人：必须已量化才返还
             if (robot.is_quantified !== 1) {
-                console.log(`[Expire] High robot ${robot.id} not quantified, skipping`);
+                console.log(`[Expire] ${robot.robot_type.toUpperCase()} robot ${robot.id} not quantified, skipping`);
                 // 只更新状态，不返还
                 await dbQuery(
                     `UPDATE robot_purchases SET status = 'expired', updated_at = NOW() WHERE id = ?`,
@@ -1139,11 +1095,14 @@ async function processOneExpiredRobot(robot, walletAddr) {
             }
             
             // 返还本金+利息
+            // 使用 expected_return 字段（购买时已计算好的到期返还金额）
             returnAmount = parseFloat(robot.expected_return);
             profitAmount = returnAmount - parseFloat(robot.price);
             
+            console.log(`[Expire] ${robot.robot_type.toUpperCase()} robot ${robot.id}: principal=${robot.price}, profit=${profitAmount.toFixed(4)}, total=${returnAmount.toFixed(4)}`);
+            
         } else {
-            // CEX/DEX/Grid 机器人：返还本金
+            // CEX/Grid 机器人：每天量化获得收益，到期只返还本金
             if (config.return_principal) {
                 returnAmount = parseFloat(robot.price);
             }
@@ -1158,8 +1117,8 @@ async function processOneExpiredRobot(robot, walletAddr) {
                 [returnAmount, walletAddr]
             );
             
-            // 记录交易历史（本金返还）
-            const txDescription = robot.robot_type === 'high' 
+            // 记录交易历史
+            const txDescription = (robot.robot_type === 'high' || robot.robot_type === 'dex')
                 ? `${robot.robot_name} 到期返还（本金+收益）`
                 : `${robot.robot_name} 到期返还本金`;
             
@@ -1178,11 +1137,11 @@ async function processOneExpiredRobot(robot, walletAddr) {
             `UPDATE robot_purchases 
             SET status = 'expired', total_profit = ?, updated_at = NOW() 
             WHERE id = ?`,
-            [robot.robot_type === 'high' ? profitAmount : robot.total_profit, robot.id]
+            [(robot.robot_type === 'high' || robot.robot_type === 'dex') ? profitAmount : robot.total_profit, robot.id]
         );
         
-        // High 机器人：记录到期收益并发放推荐奖励
-        if (robot.robot_type === 'high' && profitAmount > 0) {
+        // DEX/High 机器人：记录到期收益（推荐奖励已在购买时发放）
+        if ((robot.robot_type === 'high' || robot.robot_type === 'dex') && profitAmount > 0) {
             await dbQuery(
                 `INSERT INTO robot_earnings 
                 (wallet_address, robot_purchase_id, robot_name, earning_amount, created_at) 
@@ -1190,8 +1149,8 @@ async function processOneExpiredRobot(robot, walletAddr) {
                 [walletAddr, robot.id, robot.robot_name, profitAmount]
             );
             
-            // 发放推荐奖励（8级）
-            await distributeReferralRewards(walletAddr, robot, profitAmount);
+            // 注意：推荐奖励已在购买时立即发放，到期不再重复发放
+            console.log(`[Expire] ${robot.robot_type.toUpperCase()} robot ${robot.id} earnings recorded, referral rewards already distributed at purchase`);
         }
         
     } catch (error) {
@@ -1204,7 +1163,7 @@ async function processOneExpiredRobot(robot, walletAddr) {
  * 
  * 数学公式: R_n = P × r_n
  * 其中: R_n = 第n级奖励, P = 利润, r_n = 第n级比例
- * 比例: [30%, 10%, 5%, 1%, 1%, 1%, 1%, 1%] = 总计50%
+ * 比例: [8%, 4%, 2%, 0.5%×5] = 总计16.5% (2024-12-22 修复)
  * 
  * @param {string} walletAddr - 用户钱包地址
  * @param {object} robot - 机器人记录
@@ -1213,7 +1172,7 @@ async function processOneExpiredRobot(robot, walletAddr) {
 async function distributeReferralRewards(walletAddr, robot, profit) {
     try {
         // 使用数学工具导入的CEX奖励比例（统一管理，避免硬编码）
-        // CEX_REFERRAL_RATES = [0.30, 0.10, 0.05, 0.01, 0.01, 0.01, 0.01, 0.01]
+        // CEX_REFERRAL_RATES = [0.08, 0.04, 0.02, 0.005×5] = 16.5%
         const maxLevel = CEX_REFERRAL_RATES.length; // 8级
         let currentWallet = walletAddr;
         
@@ -1266,16 +1225,98 @@ async function distributeReferralRewards(walletAddr, robot, profit) {
 }
 
 /**
+ * 发放CEX/Grid机器人购买奖励（购买时立即发放 - 8级）
+ * 
+ * 数学公式: R_n = A × r_n
+ * 其中: R_n = 第n级奖励, A = 购买金额, r_n = 第n级比例
+ * 比例: [8%, 4%, 2%, 0.5%×5] = 总计16.5%
+ * 
+ * @param {string} walletAddr - 购买者钱包地址
+ * @param {string} robotName - 机器人名称
+ * @param {number} purchaseAmount - 购买金额
+ * @param {number} sourceId - 购买记录ID
+ */
+async function distributeCexPurchaseRewards(walletAddr, robotName, purchaseAmount, sourceId = null) {
+    try {
+        // 使用数学工具导入的CEX奖励比例
+        // CEX_REFERRAL_RATES = [0.08, 0.04, 0.02, 0.005×5] = 16.5%
+        const maxLevel = CEX_REFERRAL_RATES.length; // 8级
+        let currentWallet = walletAddr;
+        
+        // 先用数学工具计算预期奖励分配（用于日志和验证）
+        const expectedRewards = calculateCexRewards(purchaseAmount);
+        console.log(`[CEX Purchase Reward] ${expectedRewards.summary}`);
+        console.log(`[CEX Purchase Reward] Processing purchase rewards for ${robotName}, amount: ${purchaseAmount} USDT`);
+        
+        for (let level = 1; level <= maxLevel; level++) {
+            // 查找当前用户的上级
+            const referrerResult = await dbQuery(
+                'SELECT referrer_address FROM user_referrals WHERE wallet_address = ? AND referrer_address IS NOT NULL',
+                [currentWallet]
+            );
+            
+            if (referrerResult.length === 0) {
+                console.log(`[CEX Purchase Reward] No referrer found at level ${level}`);
+                break;
+            }
+            
+            const referrerAddress = referrerResult[0].referrer_address;
+            if (!referrerAddress || !isValidWalletAddress(referrerAddress)) {
+                console.log(`[CEX Purchase Reward] Invalid referrer at level ${level}`);
+                break;
+            }
+            
+            // 使用数学工具计算单级奖励（含安全上限）
+            const rewardRate = CEX_REFERRAL_RATES[level - 1];
+            const rewardAmount = calculateLevelReward(purchaseAmount, rewardRate);
+            
+            if (rewardAmount > 0) {
+                // 确保上级有余额记录
+                await dbQuery(
+                    `INSERT IGNORE INTO user_balances (wallet_address, usdt_balance, wld_balance, created_at, updated_at) 
+                    VALUES (?, 0, 0, NOW(), NOW())`,
+                    [referrerAddress]
+                );
+                
+                // 立即增加上级余额
+                await dbQuery(
+                    `UPDATE user_balances 
+                    SET usdt_balance = usdt_balance + ?, updated_at = NOW() 
+                    WHERE wallet_address = ?`,
+                    [rewardAmount, referrerAddress]
+                );
+                
+                // 记录奖励日志
+                await dbQuery(
+                    `INSERT INTO referral_rewards 
+                    (wallet_address, from_wallet, level, reward_rate, reward_amount, source_type, source_id, robot_name, source_amount, created_at) 
+                    VALUES (?, ?, ?, ?, ?, 'purchase', ?, ?, ?, NOW())`,
+                    [referrerAddress, walletAddr, level, rewardRate * 100, rewardAmount, sourceId, robotName, purchaseAmount]
+                );
+                
+                console.log(`[CEX Purchase Reward] Level ${level} reward: ${rewardAmount.toFixed(4)} USDT to ${referrerAddress.slice(0, 10)}...`);
+            }
+            
+            currentWallet = referrerAddress;
+        }
+        
+        console.log(`[CEX Purchase Reward] Completed for ${robotName}`);
+    } catch (error) {
+        console.error('[CEX Purchase Reward] Failed:', error.message);
+    }
+}
+
+/**
  * 发放DEX机器人购买奖励（启动金额奖励 - 3级）
  * 
  * 数学公式: R_n = A × r_n
  * 其中: R_n = 第n级奖励, A = 启动金额, r_n = 第n级比例
- * 比例: [5%, 3%, 2%] = 总计10%
+ * 比例: [2%, 1%, 0.5%] = 总计3.5% (2024-12-22 修复)
  * 
  * DEX机器人推荐奖励规则：
- * - 1级：启动金额的5%
- * - 2级：启动金额的3%
- * - 3级：启动金额的2%
+ * - 1级：启动金额的2%
+ * - 2级：启动金额的1%
+ * - 3级：启动金额的0.5%
  * 
  * @param {string} walletAddr - 购买者钱包地址
  * @param {string} robotName - 机器人名称
@@ -1284,7 +1325,7 @@ async function distributeReferralRewards(walletAddr, robot, profit) {
 async function distributeDexPurchaseRewards(walletAddr, robotName, purchaseAmount, sourceId = null) {
     try {
         // 使用数学工具导入的DEX奖励比例（统一管理，避免硬编码）
-        // DEX_REFERRAL_RATES = [0.05, 0.03, 0.02]
+        // DEX_REFERRAL_RATES = [0.02, 0.01, 0.005] = 3.5%
         const maxLevel = DEX_REFERRAL_RATES.length; // 3级
         let currentWallet = walletAddr;
         

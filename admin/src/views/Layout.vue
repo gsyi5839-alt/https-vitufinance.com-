@@ -588,100 +588,177 @@ const soundEnabled = ref(false)
 // 轮询定时器
 let pollingTimer = null
 
-// ==================== 弹窗次数限制 ====================
+// ==================== 待处理通知管理（刷新后继续显示直到手动关闭） ====================
 
-// 充值弹窗通知次数记录 { [depositId]: 次数 }
-const depositNotifyCount = ref({})
+// 待处理的充值通知ID列表
+const pendingDepositIds = ref([])
 
-// 提款弹窗通知次数记录 { [withdrawId]: 次数 }
-const withdrawNotifyCount = ref({})
+// 待处理的提款通知ID列表
+const pendingWithdrawIds = ref([])
 
-// 最大弹窗次数
-const MAX_NOTIFY_COUNT = 3
+// 已确认（关闭）的通知ID列表 - 用于避免重复显示
+const confirmedDepositIds = ref({})
+const confirmedWithdrawIds = ref({})
 
 /**
- * 检查是否可以弹窗（未超过3次）
+ * 检查充值是否已被确认（手动关闭）
  */
-const canShowDepositPopup = (depositId) => {
-  const count = depositNotifyCount.value[depositId] || 0
-  return count < MAX_NOTIFY_COUNT
+const isDepositConfirmed = (depositId) => {
+  return confirmedDepositIds.value[depositId] === true
 }
 
 /**
- * 增加充值弹窗计数
+ * 检查提款是否已被确认（手动关闭）
  */
-const incrementDepositNotifyCount = (depositId) => {
-  const count = depositNotifyCount.value[depositId] || 0
-  depositNotifyCount.value[depositId] = count + 1
-  // 保存到 localStorage
-  saveNotifyCountToStorage()
+const isWithdrawConfirmed = (withdrawId) => {
+  return confirmedWithdrawIds.value[withdrawId] === true
 }
 
 /**
- * 检查是否可以弹窗（未超过3次）
+ * 添加待处理充值通知
  */
-const canShowWithdrawPopup = (withdrawId) => {
-  const count = withdrawNotifyCount.value[withdrawId] || 0
-  return count < MAX_NOTIFY_COUNT
+const addPendingDeposit = (deposit) => {
+  const depositId = deposit.id
+  // If already confirmed, skip
+  if (isDepositConfirmed(depositId)) {
+    return false
+  }
+  // Add to pending list if not exists
+  if (!pendingDepositIds.value.includes(depositId)) {
+    pendingDepositIds.value.push(depositId)
+    latestDeposit.value = deposit
+    savePendingNotifications()
+    return true
+  }
+  return false
 }
 
 /**
- * 增加提款弹窗计数
+ * 添加待处理提款通知
  */
-const incrementWithdrawNotifyCount = (withdrawId) => {
-  const count = withdrawNotifyCount.value[withdrawId] || 0
-  withdrawNotifyCount.value[withdrawId] = count + 1
-  // 保存到 localStorage
-  saveNotifyCountToStorage()
+const addPendingWithdraw = (withdraw) => {
+  const withdrawId = withdraw.id
+  // If already confirmed, skip
+  if (isWithdrawConfirmed(withdrawId)) {
+    return false
+  }
+  // Add to pending list if not exists
+  if (!pendingWithdrawIds.value.includes(withdrawId)) {
+    pendingWithdrawIds.value.push(withdrawId)
+    latestWithdraw.value = withdraw
+    savePendingNotifications()
+    return true
+  }
+  return false
 }
 
 /**
- * 保存通知计数到 localStorage
+ * 确认（关闭）充值通知 - 管理员手动关闭时调用
  */
-const saveNotifyCountToStorage = () => {
+const confirmDeposit = (depositId) => {
+  // Remove from pending
+  const index = pendingDepositIds.value.indexOf(depositId)
+  if (index > -1) {
+    pendingDepositIds.value.splice(index, 1)
+  }
+  // Mark as confirmed
+  confirmedDepositIds.value[depositId] = true
+  savePendingNotifications()
+}
+
+/**
+ * 确认（关闭）提款通知 - 管理员手动关闭时调用
+ */
+const confirmWithdraw = (withdrawId) => {
+  // Remove from pending
+  const index = pendingWithdrawIds.value.indexOf(withdrawId)
+  if (index > -1) {
+    pendingWithdrawIds.value.splice(index, 1)
+  }
+  // Mark as confirmed
+  confirmedWithdrawIds.value[withdrawId] = true
+  savePendingNotifications()
+}
+
+/**
+ * 保存待处理通知到 localStorage
+ */
+const savePendingNotifications = () => {
   try {
-    localStorage.setItem('admin_deposit_notify_count', JSON.stringify(depositNotifyCount.value))
-    localStorage.setItem('admin_withdraw_notify_count', JSON.stringify(withdrawNotifyCount.value))
+    localStorage.setItem('admin_pending_deposits', JSON.stringify(pendingDepositIds.value))
+    localStorage.setItem('admin_pending_withdraws', JSON.stringify(pendingWithdrawIds.value))
+    localStorage.setItem('admin_confirmed_deposits', JSON.stringify(confirmedDepositIds.value))
+    localStorage.setItem('admin_confirmed_withdraws', JSON.stringify(confirmedWithdrawIds.value))
+    localStorage.setItem('admin_latest_deposit', JSON.stringify(latestDeposit.value))
+    localStorage.setItem('admin_latest_withdraw', JSON.stringify(latestWithdraw.value))
   } catch (e) {
-    console.log('保存通知计数失败:', e)
+    console.log('保存待处理通知失败:', e)
   }
 }
 
 /**
- * 从 localStorage 加载通知计数
+ * 从 localStorage 加载待处理通知
  */
-const loadNotifyCountFromStorage = () => {
+const loadPendingNotifications = () => {
   try {
-    const depositData = localStorage.getItem('admin_deposit_notify_count')
-    const withdrawData = localStorage.getItem('admin_withdraw_notify_count')
-    if (depositData) {
-      depositNotifyCount.value = JSON.parse(depositData)
+    const pendingDeposits = localStorage.getItem('admin_pending_deposits')
+    const pendingWithdraws = localStorage.getItem('admin_pending_withdraws')
+    const confirmedDeposits = localStorage.getItem('admin_confirmed_deposits')
+    const confirmedWithdraws = localStorage.getItem('admin_confirmed_withdraws')
+    const savedLatestDeposit = localStorage.getItem('admin_latest_deposit')
+    const savedLatestWithdraw = localStorage.getItem('admin_latest_withdraw')
+    
+    if (pendingDeposits) {
+      pendingDepositIds.value = JSON.parse(pendingDeposits)
     }
-    if (withdrawData) {
-      withdrawNotifyCount.value = JSON.parse(withdrawData)
+    if (pendingWithdraws) {
+      pendingWithdrawIds.value = JSON.parse(pendingWithdraws)
+    }
+    if (confirmedDeposits) {
+      confirmedDepositIds.value = JSON.parse(confirmedDeposits)
+    }
+    if (confirmedWithdraws) {
+      confirmedWithdrawIds.value = JSON.parse(confirmedWithdraws)
+    }
+    if (savedLatestDeposit) {
+      latestDeposit.value = JSON.parse(savedLatestDeposit)
+    }
+    if (savedLatestWithdraw) {
+      latestWithdraw.value = JSON.parse(savedLatestWithdraw)
+    }
+    
+    // Show popup if there are pending notifications
+    if (pendingDepositIds.value.length > 0) {
+      showDepositNotification.value = true
+      playNotificationSound()
+    }
+    if (pendingWithdrawIds.value.length > 0) {
+      showWithdrawNotification.value = true
+      playNotificationSound()
     }
   } catch (e) {
-    console.log('加载通知计数失败:', e)
+    console.log('加载待处理通知失败:', e)
   }
 }
 
 /**
- * 清理旧的通知计数记录（保留最近100条）
+ * 清理旧的已确认记录（保留最近200条）
  */
-const cleanOldNotifyCount = () => {
-  const maxRecords = 100
-  const depositKeys = Object.keys(depositNotifyCount.value)
-  const withdrawKeys = Object.keys(withdrawNotifyCount.value)
+const cleanOldConfirmedRecords = () => {
+  const maxRecords = 200
+  const depositKeys = Object.keys(confirmedDepositIds.value)
+  const withdrawKeys = Object.keys(confirmedWithdrawIds.value)
   
   if (depositKeys.length > maxRecords) {
     const keysToRemove = depositKeys.slice(0, depositKeys.length - maxRecords)
-    keysToRemove.forEach(key => delete depositNotifyCount.value[key])
+    keysToRemove.forEach(key => delete confirmedDepositIds.value[key])
   }
   
   if (withdrawKeys.length > maxRecords) {
     const keysToRemove = withdrawKeys.slice(0, withdrawKeys.length - maxRecords)
-    keysToRemove.forEach(key => delete withdrawNotifyCount.value[key])
+    keysToRemove.forEach(key => delete confirmedWithdrawIds.value[key])
   }
+  savePendingNotifications()
 }
 
 // ==================== 响应式处理 ====================
@@ -896,24 +973,17 @@ const checkNewDeposits = async () => {
         newDepositCount.value += newCount
         lastDepositId.value = lastId
         
-        // 更新最新充值信息
+        // Add to pending list (returns true if not already confirmed)
         if (deposit) {
-          latestDeposit.value = deposit
-        }
-        
-        // 检查是否可以弹窗（未超过3次）
-        const depositId = deposit?.id || lastId
-        const canPopup = canShowDepositPopup(depositId)
-        
-        // 播放提示音（只有可以弹窗时才播放）
-        if (canPopup) {
-          playNotificationSound()
+          const canPopup = addPendingDeposit(deposit)
           
-          // 语音播报：你有一笔充值订单来啦
-          speakNewDepositOrder().then(() => {
-            // 语音播报完成后，播放详细信息
-            if (deposit) {
-              // 延迟500ms后播放详细信息
+          // Show notification only if not already confirmed
+          if (canPopup) {
+            playNotificationSound()
+            
+            // 语音播报：你有一笔充值订单来啦
+            speakNewDepositOrder().then(() => {
+              // 语音播报完成后，播放详细信息
               setTimeout(() => {
                 speakDepositComplete(
                   deposit.wallet_address || deposit.user_id,
@@ -921,30 +991,27 @@ const checkNewDeposits = async () => {
                   deposit.token || 'USDT'
                 )
               }, 500)
-            }
-          }).catch(err => {
-            console.log('语音播报失败:', err)
-          })
-          
-          // 显示通知
-          ElNotification({
-            title: '💰 新充值通知',
-            message: `收到 ${deposit?.amount || ''} ${deposit?.token || 'USDT'} 充值`,
-            type: 'success',
-            duration: 5000,
-            onClick: () => {
-              router.push('/deposits')
-            }
-          })
-          
-          // 显示弹窗
-          showDepositNotification.value = true
-          
-          // 增加弹窗计数
-          incrementDepositNotifyCount(depositId)
-          console.log(`[Polling] 充值弹窗计数: ${depositNotifyCount.value[depositId]}/${MAX_NOTIFY_COUNT}`)
-        } else {
-          console.log(`[Polling] 充值ID ${depositId} 弹窗已达上限 ${MAX_NOTIFY_COUNT} 次，不再弹窗`)
+            }).catch(err => {
+              console.log('语音播报失败:', err)
+            })
+            
+            // 显示通知
+            ElNotification({
+              title: '💰 新充值通知',
+              message: `收到 ${deposit?.amount || ''} ${deposit?.token || 'USDT'} 充值`,
+              type: 'success',
+              duration: 5000,
+              onClick: () => {
+                router.push('/deposits')
+              }
+            })
+            
+            // 显示弹窗
+            showDepositNotification.value = true
+            console.log(`[Polling] 充值ID ${deposit.id} 已添加到待处理列表`)
+          } else {
+            console.log(`[Polling] 充值ID ${deposit.id} 已确认或已存在，不再弹窗`)
+          }
         }
         
         // 触发刷新事件
@@ -983,21 +1050,15 @@ const checkNewWithdrawals = async () => {
         newWithdrawCount.value += newCount
         lastWithdrawId.value = lastId
         
-        // 更新最新提款信息
+        // Add to pending list (returns true if not already confirmed)
         if (withdraw) {
-          latestWithdraw.value = withdraw
-        }
-        
-        // 检查是否可以弹窗（未超过3次）
-        const withdrawId = withdraw?.id || lastId
-        const canPopup = canShowWithdrawPopup(withdrawId)
-        
-        // 播放提示音（只有可以弹窗时才播放）
-        if (canPopup) {
-          playNotificationSound()
+          const canPopup = addPendingWithdraw(withdraw)
           
-          // 语音播报：用户ID提现金额
-          if (withdraw) {
+          // Show notification only if not already confirmed
+          if (canPopup) {
+            playNotificationSound()
+            
+            // 语音播报：用户ID提现金额
             speakWithdrawRequest(
               withdraw.wallet_address || withdraw.user_id,
               withdraw.amount,
@@ -1005,27 +1066,24 @@ const checkNewWithdrawals = async () => {
             ).catch(err => {
               console.log('语音播报失败:', err)
             })
+            
+            // 显示通知
+            ElNotification({
+              title: '💸 新提款申请',
+              message: `用户申请提款 ${withdraw?.amount || ''} ${withdraw?.token || 'USDT'}`,
+              type: 'warning',
+              duration: 8000,
+              onClick: () => {
+                router.push('/withdrawals')
+              }
+            })
+            
+            // 显示弹窗
+            showWithdrawNotification.value = true
+            console.log(`[Polling] 提款ID ${withdraw.id} 已添加到待处理列表`)
+          } else {
+            console.log(`[Polling] 提款ID ${withdraw.id} 已确认或已存在，不再弹窗`)
           }
-          
-          // 显示通知
-          ElNotification({
-            title: '💸 新提款申请',
-            message: `用户申请提款 ${withdraw?.amount || ''} ${withdraw?.token || 'USDT'}`,
-            type: 'warning',
-            duration: 8000,
-            onClick: () => {
-              router.push('/withdrawals')
-            }
-          })
-          
-          // 显示弹窗
-          showWithdrawNotification.value = true
-          
-          // 增加弹窗计数
-          incrementWithdrawNotifyCount(withdrawId)
-          console.log(`[Polling] 提款弹窗计数: ${withdrawNotifyCount.value[withdrawId]}/${MAX_NOTIFY_COUNT}`)
-        } else {
-          console.log(`[Polling] 提款ID ${withdrawId} 弹窗已达上限 ${MAX_NOTIFY_COUNT} 次，不再弹窗`)
         }
         
         // 触发刷新事件
@@ -1238,32 +1296,39 @@ const goToDeposits = () => {
 }
 
 /**
- * 稍后处理充值（用户点击时激活语音）
+ * 稍后处理充值（用户点击时激活语音） - 不标记为已确认，刷新后继续显示
  */
 const handleDepositLater = async () => {
   showDepositNotification.value = false
   stopNotificationSound()
   // 用户点击按钮，激活语音功能（下次通知时可以播放）
   await activateSpeech()
+  // Note: 不调用 confirmDeposit，刷新页面后会继续显示弹窗
 }
 
 /**
- * 稍后处理提款（用户点击时激活语音）
+ * 稍后处理提款（用户点击时激活语音） - 不标记为已确认，刷新后继续显示
  */
 const handleWithdrawLater = async () => {
   showWithdrawNotification.value = false
   stopNotificationSound()
   // 用户点击按钮，激活语音功能
   await activateSpeech()
+  // Note: 不调用 confirmWithdraw，刷新页面后会继续显示弹窗
 }
 
 /**
- * 查看充值详情（用户点击时激活语音并播放）
+ * 查看充值详情（用户点击时激活语音并播放） - 标记为已确认，刷新后不再显示
  */
 const viewDepositDetail = async () => {
   showDepositNotification.value = false
   newDepositCount.value = 0
   stopNotificationSound() // 停止提示音
+  
+  // Mark all pending deposits as confirmed (user has acknowledged)
+  pendingDepositIds.value.forEach(id => {
+    confirmDeposit(id)
+  })
   
   // 用户点击按钮，激活语音功能并播放当前通知
   await activateSpeech()
@@ -1280,12 +1345,17 @@ const viewDepositDetail = async () => {
 }
 
 /**
- * 查看提款详情（用户点击时激活语音并播放）
+ * 查看提款详情（用户点击时激活语音并播放） - 标记为已确认，刷新后不再显示
  */
 const viewWithdrawDetail = async () => {
   showWithdrawNotification.value = false
   newWithdrawCount.value = 0
   stopNotificationSound() // 停止提示音
+  
+  // Mark all pending withdraws as confirmed (user has acknowledged)
+  pendingWithdrawIds.value.forEach(id => {
+    confirmWithdraw(id)
+  })
   
   // 用户点击按钮，激活语音功能并播放当前通知
   await activateSpeech()
@@ -1396,9 +1466,9 @@ onMounted(() => {
   // 初始化语音播报服务
   initSpeechService()
   
-  // 加载通知弹窗计数记录
-  loadNotifyCountFromStorage()
-  cleanOldNotifyCount()
+  // 加载待处理通知（刷新后继续显示）
+  loadPendingNotifications()
+  cleanOldConfirmedRecords()
   
   // 初始化充值和提款通知
   initLastDepositId()

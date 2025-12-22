@@ -21,27 +21,30 @@ const __dirname = path.dirname(__filename);
 const CONFIG = {
     // Request rate limits
     // Note: SPA frontends make many concurrent requests on page load
-    // These limits should be generous for normal users
-    MAX_REQUESTS_PER_SECOND: 50,          // Max requests per second (increased for SPA)
-    MAX_REQUESTS_PER_MINUTE: 300,         // Max requests per minute from single IP
-    MAX_REQUESTS_PER_HOUR: 3000,          // Max requests per hour from single IP
+    // These limits should be very generous for normal users
+    MAX_REQUESTS_PER_SECOND: 100,         // Max requests per second (increased for SPA)
+    MAX_REQUESTS_PER_MINUTE: 1000,        // Max requests per minute from single IP (raised)
+    MAX_REQUESTS_PER_HOUR: 10000,         // Max requests per hour from single IP (raised)
     
-    // Attack detection thresholds
-    SUSPICIOUS_THRESHOLD: 10,             // Suspicious behavior count before warning
-    BLOCK_THRESHOLD: 20,                  // Suspicious behavior count before blocking
-    PERMANENT_BLOCK_THRESHOLD: 100,       // Count before permanent block
+    // Attack detection thresholds (raised significantly to prevent false positives)
+    SUSPICIOUS_THRESHOLD: 100,            // Suspicious behavior count before warning (raised from 10)
+    BLOCK_THRESHOLD: 200,                 // Suspicious behavior count before blocking (raised from 20)
+    PERMANENT_BLOCK_THRESHOLD: 500,       // Count before permanent block (raised from 100)
     
-    // Block durations (milliseconds)
-    TEMP_BLOCK_DURATION: 5 * 60 * 1000,         // 5 minutes (reduced)
-    MEDIUM_BLOCK_DURATION: 60 * 60 * 1000,      // 1 hour
-    LONG_BLOCK_DURATION: 24 * 60 * 60 * 1000,   // 24 hours
+    // Block durations (milliseconds) - shortened to reduce impact of false positives
+    TEMP_BLOCK_DURATION: 2 * 60 * 1000,         // 2 minutes (reduced from 5)
+    MEDIUM_BLOCK_DURATION: 15 * 60 * 1000,      // 15 minutes (reduced from 1 hour)
+    LONG_BLOCK_DURATION: 60 * 60 * 1000,        // 1 hour (reduced from 24 hours)
     
     // Cleanup intervals
     CLEANUP_INTERVAL: 5 * 60 * 1000,      // Clean up expired data every 5 minutes
     
     // Max storage sizes
     MAX_IP_RECORDS: 10000,                // Max IPs to track
-    MAX_BLOCKED_IPS: 5000                 // Max blocked IPs
+    MAX_BLOCKED_IPS: 5000,                // Max blocked IPs
+    
+    // Enable/disable auto-blocking (set to false to only log, not block)
+    AUTO_BLOCK_ENABLED: false             // Disabled to prevent blocking normal users
 };
 
 // ==================== In-Memory Storage ====================
@@ -159,17 +162,20 @@ export function trackRequest(ip) {
         tracker.suspicious += suspiciousIncrement;
         updateReputation(ip, suspiciousIncrement * 2);
         
-        // Check if should block
-        if (tracker.suspicious >= CONFIG.PERMANENT_BLOCK_THRESHOLD) {
-            blockIP(ip, CONFIG.LONG_BLOCK_DURATION, 'Repeated rate limit violations', true);
-        } else if (tracker.suspicious >= CONFIG.BLOCK_THRESHOLD) {
-            blockIP(ip, CONFIG.MEDIUM_BLOCK_DURATION, reason);
-        } else if (tracker.suspicious >= CONFIG.SUSPICIOUS_THRESHOLD) {
-            blockIP(ip, CONFIG.TEMP_BLOCK_DURATION, reason);
+        // Check if should block (only if auto-blocking is enabled)
+        if (CONFIG.AUTO_BLOCK_ENABLED) {
+            if (tracker.suspicious >= CONFIG.PERMANENT_BLOCK_THRESHOLD) {
+                blockIP(ip, CONFIG.LONG_BLOCK_DURATION, 'Repeated rate limit violations', true);
+            } else if (tracker.suspicious >= CONFIG.BLOCK_THRESHOLD) {
+                blockIP(ip, CONFIG.MEDIUM_BLOCK_DURATION, reason);
+            } else if (tracker.suspicious >= CONFIG.SUSPICIOUS_THRESHOLD) {
+                blockIP(ip, CONFIG.TEMP_BLOCK_DURATION, reason);
+            }
         }
         
         ipRequestTracker.set(ip, tracker);
-        return { allowed: false, reason };
+        // Don't block request, just log the suspicious activity
+        return { allowed: true, reason: 'OK (logged)' };
     }
     
     ipRequestTracker.set(ip, tracker);
@@ -280,11 +286,13 @@ export function updateReputation(ip, delta) {
     const newScore = Math.max(0, Math.min(100, current + delta));
     ipReputationScores.set(ip, newScore);
     
-    // Auto-block if reputation is too bad
-    if (newScore >= 80) {
-        blockIP(ip, CONFIG.LONG_BLOCK_DURATION, 'Bad reputation score');
-    } else if (newScore >= 50) {
-        blockIP(ip, CONFIG.MEDIUM_BLOCK_DURATION, 'Poor reputation score');
+    // Auto-block if reputation is too bad (only if enabled)
+    if (CONFIG.AUTO_BLOCK_ENABLED) {
+        if (newScore >= 80) {
+            blockIP(ip, CONFIG.LONG_BLOCK_DURATION, 'Bad reputation score');
+        } else if (newScore >= 50) {
+            blockIP(ip, CONFIG.MEDIUM_BLOCK_DURATION, 'Poor reputation score');
+        }
     }
 }
 

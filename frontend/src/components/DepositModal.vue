@@ -15,7 +15,7 @@
             :class="{ selected: selectedChain === 'BSC' }"
             @click="selectedChain = 'BSC'"
           >
-            <img src="/static/YITAIFAN/1.png" alt="BSC" class="chain-logo-img" />
+            <img src="/static/bsc-chain.png" alt="BSC" class="chain-logo-img" />
             <div class="chain-info">
               <span class="chain-name">BSC</span>
               <span class="chain-desc">Low Gas Fee</span>
@@ -28,7 +28,7 @@
             :class="{ selected: selectedChain === 'ETH' }"
             @click="selectedChain = 'ETH'"
           >
-            <img src="/static/YITAIFAN/2.png" alt="ETH" class="chain-logo-img" />
+            <img src="/static/eth-chain.png" alt="ETH" class="chain-logo-img" />
             <div class="chain-info">
               <span class="chain-name">Ethereum</span>
               <span class="chain-desc">Mainnet</span>
