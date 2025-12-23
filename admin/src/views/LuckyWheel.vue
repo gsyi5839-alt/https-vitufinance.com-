@@ -972,6 +972,12 @@ const deleteRigged = async (id) => {
   }
 }
 
+// Utility functions
+const formatDate = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleString('zh-CN')
+}
+
 onMounted(() => {
   fetchStats()
   fetchRecords()
