@@ -1293,73 +1293,12 @@ async function distributeReferralRewards(walletAddr, robot, profit) {
  * @param {number} sourceId - 购买记录ID
  */
 async function distributeCexPurchaseRewards(walletAddr, robotName, purchaseAmount, sourceId = null) {
-    try {
-        // 使用数学工具导入的CEX奖励比例
-        // CEX_REFERRAL_RATES = [0.08, 0.04, 0.02, 0.005×5] = 16.5%
-        const maxLevel = CEX_REFERRAL_RATES.length; // 8级
-        let currentWallet = walletAddr;
-        
-        // 先用数学工具计算预期奖励分配（用于日志和验证）
-        const expectedRewards = calculateCexRewards(purchaseAmount);
-        console.log(`[CEX Purchase Reward] ${expectedRewards.summary}`);
-        console.log(`[CEX Purchase Reward] Processing purchase rewards for ${robotName}, amount: ${purchaseAmount} USDT`);
-        
-        for (let level = 1; level <= maxLevel; level++) {
-            // 查找当前用户的上级
-            const referrerResult = await dbQuery(
-                'SELECT referrer_address FROM user_referrals WHERE wallet_address = ? AND referrer_address IS NOT NULL',
-                [currentWallet]
-            );
-            
-            if (referrerResult.length === 0) {
-                console.log(`[CEX Purchase Reward] No referrer found at level ${level}`);
-                break;
-            }
-            
-            const referrerAddress = referrerResult[0].referrer_address;
-            if (!referrerAddress || !isValidWalletAddress(referrerAddress)) {
-                console.log(`[CEX Purchase Reward] Invalid referrer at level ${level}`);
-                break;
-            }
-            
-            // 使用数学工具计算单级奖励（含安全上限）
-            const rewardRate = CEX_REFERRAL_RATES[level - 1];
-            const rewardAmount = calculateLevelReward(purchaseAmount, rewardRate);
-            
-            if (rewardAmount > 0) {
-                // 确保上级有余额记录
-                await dbQuery(
-                    `INSERT IGNORE INTO user_balances (wallet_address, usdt_balance, wld_balance, created_at, updated_at) 
-                    VALUES (?, 0, 0, NOW(), NOW())`,
-                    [referrerAddress]
-                );
-                
-                // 立即增加上级余额
-                await dbQuery(
-                    `UPDATE user_balances 
-                    SET usdt_balance = usdt_balance + ?, updated_at = NOW() 
-                    WHERE wallet_address = ?`,
-                    [rewardAmount, referrerAddress]
-                );
-                
-                // 记录奖励日志
-                await dbQuery(
-                    `INSERT INTO referral_rewards 
-                    (wallet_address, from_wallet, level, reward_rate, reward_amount, source_type, source_id, robot_name, source_amount, created_at) 
-                    VALUES (?, ?, ?, ?, ?, 'purchase', ?, ?, ?, NOW())`,
-                    [referrerAddress, walletAddr, level, rewardRate * 100, rewardAmount, sourceId, robotName, purchaseAmount]
-                );
-                
-                console.log(`[CEX Purchase Reward] Level ${level} reward: ${rewardAmount.toFixed(4)} USDT to ${referrerAddress.slice(0, 10)}...`);
-            }
-            
-            currentWallet = referrerAddress;
-        }
-        
-        console.log(`[CEX Purchase Reward] Completed for ${robotName}`);
-    } catch (error) {
-        console.error('[CEX Purchase Reward] Failed:', error.message);
-    }
+    // ⚠️ 安全保护: CEX机器人不应有购买返点！只有DEX机器人有购买返点
+    // 业务规则: DEX=5%/3%/2%购买返点, CEX/High/Grid=无购买返点
+    // 原注释已过时, 实际CEX_REFERRAL_RATES是 [0.30, 0.10, 0.05, 0.01×5] = 50%
+    console.error(`[CEX Purchase Reward] ⚠️ WARNING: CEX robots have NO purchase rebates!`);
+    console.error(`[CEX Purchase Reward] Blocked: wallet=${walletAddr}, robot=${robotName}, amount=${purchaseAmount}`);
+    return; // 安全退出，不发放任何奖励
 }
 
 /**
