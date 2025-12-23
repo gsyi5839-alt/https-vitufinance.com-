@@ -262,10 +262,6 @@ router.post('/api/robot/purchase', sensitiveLimiter, async (req, res) => {
             });
         }
         
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'robotRoutes.js:226',message:'Robot purchase - balance check',data:{wallet:walletAddr.slice(0,10),balance:userBalance.length>0?parseFloat(userBalance[0].usdt_balance):null,robotPrice,robotName:robot_name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        
         if (userBalance.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -451,11 +447,7 @@ router.post('/api/robot/purchase', sensitiveLimiter, async (req, res) => {
             [walletAddr]
         );
         
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'robotRoutes.js:360',message:'Robot purchase - final balance',data:{wallet:walletAddr.slice(0,10),balanceAfter:updatedBalance.length>0?parseFloat(updatedBalance[0].usdt_balance):null,expectedBalance:currentBalance-robotPrice},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        
-        // 14. 推荐奖励发放规则
+        // 14. Referral reward distribution rules
         // CEX/Grid机器人: 不在购买时发放，在量化收益时按收益的 30%/10%/5%/1% 发放
         // High机器人: 不在购买时发放，到期后按收益比例发放
         // DEX机器人: 购买时立即发放启动资金返点 5%/3%/2%

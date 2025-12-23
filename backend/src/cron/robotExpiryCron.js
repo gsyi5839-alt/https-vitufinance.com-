@@ -143,11 +143,7 @@ async function processAllExpiredRobots() {
  * @returns {object} 处理结果
  */
 async function processExpiredRobot(robot) {
-    // #region agent log
-    const logPayload = {location:'robotExpiryCron.js:137',message:'Processing expired robot',data:{robotId:robot.id,robotName:robot.robot_name,robotType:robot.robot_type,price:parseFloat(robot.price),wallet:robot.wallet_address.slice(0,10),isQuantified:robot.is_quantified,totalProfit:parseFloat(robot.total_profit),expectedReturn:parseFloat(robot.expected_return||0)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logPayload)}).catch(()=>{});
-    // #endregion
-    
-    // 检查用户是否被冻结（冻结用户不发放返还）
+    // Check if user is banned (banned users do not receive refunds)
     const userStatus = await dbQuery(
         'SELECT is_banned FROM user_balances WHERE wallet_address = ?',
         [robot.wallet_address]
@@ -203,13 +199,9 @@ async function processExpiredRobot(robot) {
             return { success: false, error: `Unknown robot type: ${robot.robot_type}` };
     }
     
-    // 执行返还
+    // Execute refund
     if (returnAmount > 0) {
-        // #region agent log
-        const logBeforeRefund = {location:'robotExpiryCron.js:185',message:'BEFORE balance refund',data:{robotId:robot.id,wallet:walletAddr.slice(0,10),returnAmount,profitAmount},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logBeforeRefund)}).catch(()=>{});
-        // #endregion
-        
-        // 增加用户余额
+        // Add balance to user account
         await dbQuery(
             `UPDATE user_balances 
             SET usdt_balance = usdt_balance + ?, updated_at = NOW() 
@@ -217,11 +209,7 @@ async function processExpiredRobot(robot) {
             [returnAmount, walletAddr]
         );
         
-        // #region agent log
-        const logAfterRefund = {location:'robotExpiryCron.js:195',message:'AFTER balance refund',data:{robotId:robot.id,wallet:walletAddr.slice(0,10),returnAmount,refundExecuted:true},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logAfterRefund)}).catch(()=>{});
-        // #endregion
-        
-        // 记录交易历史（本金返还）
+        // Record transaction history (principal refund)
         const txDescription = robot.robot_type === 'high' 
             ? `${robot.robot_name} 到期返还（本金+收益）`
             : `${robot.robot_name} 到期返还本金`;

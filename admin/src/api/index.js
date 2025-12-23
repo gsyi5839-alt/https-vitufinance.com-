@@ -1,14 +1,20 @@
 /**
- * 管理系统 API 接口
+ * Admin System API Interface
  * 
- * 认证方式：JWT Token（通过 Authorization Header）
- * Token 存储在 localStorage，不使用 Cookie
- * 不需要 CSRF 保护（因为使用 JWT + Header 认证）
+ * Authentication: JWT Token (via Authorization Header)
+ * Token stored in localStorage, no Cookie used
+ * CSRF protection not needed (using JWT + Header auth)
+ * 
+ * Features:
+ * - Automatic error logging
+ * - Request performance tracking
+ * - Detailed error reporting
  */
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { logApiError, logAuthError } from '../utils/errorLogger'
 
-// 创建 axios 实例
+// Create axios instance
 const request = axios.create({
   baseURL: '/api/admin',
   timeout: 15000,
@@ -17,264 +23,321 @@ const request = axios.create({
   }
 })
 
-// 请求拦截器 - 添加 JWT Token
+// Request interceptor - Add JWT Token and tracking
 request.interceptors.request.use(
   (config) => {
-    // 从 localStorage 获取 JWT Token
+    // Get JWT Token from localStorage
     const token = localStorage.getItem('admin_token')
     if (token) {
-      // 使用 Bearer Token 认证
       config.headers['Authorization'] = `Bearer ${token}`
     }
+    
+    // Add request timestamp for performance tracking
+    config.metadata = { startTime: Date.now() }
+    
     return config
   },
   error => {
+    // Log request configuration errors
+    logApiError({
+      url: error.config?.url || 'unknown',
+      method: error.config?.method?.toUpperCase() || 'UNKNOWN',
+      status: 0,
+      statusText: 'Request Config Error',
+      responseData: null,
+      requestData: null
+    })
+    
     return Promise.reject(error)
   }
 )
 
-// 响应拦截器 - 处理错误
+// Response interceptor - Handle errors with detailed logging
 request.interceptors.response.use(
   response => {
+    // Calculate request duration
+    const duration = response.config.metadata
+      ? Date.now() - response.config.metadata.startTime
+      : 0
+    
+    // Log slow requests (> 5 seconds)
+    if (duration > 5000) {
+      console.warn(`[AdminAPI] Slow request: ${response.config.method?.toUpperCase()} ${response.config.url} took ${duration}ms`)
+    }
+    
     return response.data
   },
   (error) => {
-    // 获取请求URL和错误信息
     const requestUrl = error.config?.url || ''
-    const message = error.response?.data?.message || '请求失败'
+    const requestMethod = error.config?.method?.toUpperCase() || 'UNKNOWN'
+    const status = error.response?.status || 0
+    const statusText = error.response?.statusText || 'Unknown Error'
+    const responseData = error.response?.data
+    const message = responseData?.message || 'Request failed'
     
-    // 401 未授权处理
-    if (error.response?.status === 401) {
-      // 登录接口返回401表示密码错误，不触发页面跳转
-      // 直接返回错误，让登录页面处理
+    // Log the API error
+    logApiError({
+      url: requestUrl,
+      method: requestMethod,
+      status,
+      statusText,
+      responseData,
+      requestData: error.config?.data ? JSON.parse(error.config.data) : null
+    })
+    
+    // 401 Unauthorized handling
+    if (status === 401) {
+      // Login API returns 401 for wrong password, don't redirect
       if (requestUrl.includes('/login')) {
+        logAuthError({
+          action: 'login',
+          errorMessage: 'Invalid credentials',
+          statusCode: 401
+        })
         return Promise.reject(error)
       }
       
-      // 其他接口返回401表示token过期，需要跳转登录页
+      // Other APIs return 401 for expired token
+      logAuthError({
+        action: 'token_expired',
+        errorMessage: 'Token expired or invalid',
+        statusCode: 401
+      })
+      
       localStorage.removeItem('admin_token')
-      ElMessage.error('登录已过期，请重新登录')
-      // 使用Vue Router跳转，避免页面刷新
+      ElMessage.error('Session expired, please login again')
       window.location.href = '/admin/login'
       return Promise.reject(error)
     }
     
-    // 403 禁止访问
-    if (error.response?.status === 403) {
-      ElMessage.error('没有权限执行此操作')
+    // 403 Forbidden
+    if (status === 403) {
+      logAuthError({
+        action: 'access_denied',
+        errorMessage: 'Permission denied',
+        statusCode: 403
+      })
+      ElMessage.error('Permission denied')
       return Promise.reject(error)
     }
     
-    // 其他错误（非登录接口才显示通用错误消息）
+    // 500+ Server errors
+    if (status >= 500) {
+      ElMessage.error('Server error, please try again later')
+      return Promise.reject(error)
+    }
+    
+    // Other errors (don't show for login API)
     if (!requestUrl.includes('/login')) {
       ElMessage.error(message)
     }
+    
     return Promise.reject(error)
   }
 )
 
-// ==================== 认证相关 ====================
+// ==================== Authentication ====================
 
 /**
- * 管理员登录
+ * Admin login
  */
 export const login = (data) => {
   return request.post('/login', data)
 }
 
 /**
- * 获取管理员信息
+ * Get admin info
  */
 export const getAdminInfo = () => {
   return request.get('/info')
 }
 
-// ==================== 仪表盘统计 ====================
+// ==================== Dashboard Stats ====================
 
 /**
- * 获取仪表盘统计数据
+ * Get dashboard statistics
  */
 export const getDashboardStats = () => {
   return request.get('/dashboard/stats')
 }
 
-// ==================== 用户管理 ====================
+// ==================== User Management ====================
 
 /**
- * 获取用户列表
+ * Get user list
  */
 export const getUsers = (params) => {
   return request.get('/users', { params })
 }
 
 /**
- * 获取用户详情
+ * Get user details
  */
 export const getUserDetail = (walletAddress) => {
   return request.get(`/users/${walletAddress}`)
 }
 
 /**
- * 更新用户余额
+ * Update user balance
  */
 export const updateUserBalance = (walletAddress, data) => {
   return request.put(`/users/${walletAddress}/balance`, data)
 }
 
 /**
- * 封禁用户
+ * Ban user
  */
 export const banUser = (walletAddress, data) => {
   return request.post(`/users/${walletAddress}/ban`, data)
 }
 
 /**
- * 解封用户
+ * Unban user
  */
 export const unbanUser = (walletAddress) => {
   return request.post(`/users/${walletAddress}/unban`)
 }
 
-// ==================== 充值记录 ====================
+// ==================== Deposit Records ====================
 
 /**
- * 获取充值记录列表
+ * Get deposit list
  */
 export const getDeposits = (params) => {
   return request.get('/deposits', { params })
 }
 
 /**
- * 更新充值状态
+ * Update deposit status
  */
 export const updateDepositStatus = (id, status) => {
   return request.put(`/deposits/${id}/status`, { status })
 }
 
-// ==================== 提款记录 ====================
+// ==================== Withdrawal Records ====================
 
 /**
- * 获取提款记录列表
+ * Get withdrawal list
  */
 export const getWithdrawals = (params) => {
   return request.get('/withdrawals', { params })
 }
 
 /**
- * 处理提款请求
+ * Process withdrawal request
  */
 export const processWithdrawal = (id, data) => {
   return request.put(`/withdrawals/${id}/process`, data)
 }
 
 /**
- * 自动转账
+ * Auto transfer withdrawal
  */
 export const autoTransferWithdrawal = (id, data) => {
   return request.post(`/withdrawals/${id}/auto-transfer`, data)
 }
 
 /**
- * 获取平台钱包信息
+ * Get platform wallet info
  */
 export const getWalletInfo = () => {
   return request.get('/wallet-info')
 }
 
 /**
- * 获取提款的转账记录
+ * Get withdrawal transfer record
  */
 export const getWithdrawalTransferRecord = (id) => {
   return request.get(`/withdrawals/${id}/transfer-record`)
 }
 
-// ==================== 机器人购买记录 ====================
+// ==================== Robot Purchase Records ====================
 
 /**
- * 获取机器人统计数据
+ * Get robot statistics
  */
 export const getRobotStats = () => {
   return request.get('/robots/stats')
 }
 
 /**
- * 获取机器人购买列表
+ * Get robot purchase list
  */
 export const getRobotPurchases = (params) => {
   return request.get('/robots', { params })
 }
 
 /**
- * 获取机器人购买详情
+ * Get robot purchase details
  */
 export const getRobotDetail = (id) => {
   return request.get(`/robots/${id}`)
 }
 
 /**
- * 获取用户的所有机器人数据
+ * Get all robots for a user
  */
 export const getUserRobots = (walletAddress) => {
   return request.get(`/robots/user/${walletAddress}`)
 }
 
 /**
- * 获取量化日志列表
+ * Get quantify logs
  */
 export const getQuantifyLogs = (params) => {
   return request.get('/quantify-logs', { params })
 }
 
 /**
- * 获取机器人收益汇总统计
+ * Get robot earnings summary
  */
 export const getRobotEarningsSummary = () => {
   return request.get('/robots/earnings-summary')
 }
 
-// ==================== 公告管理 ====================
+// ==================== Announcements ====================
 
 /**
- * 获取公告列表
+ * Get announcement list
  */
 export const getAnnouncements = (params) => {
   return request.get('/announcements', { params })
 }
 
 /**
- * 创建公告
+ * Create announcement
  */
 export const createAnnouncement = (data) => {
   return request.post('/announcements', data)
 }
 
 /**
- * 更新公告
+ * Update announcement
  */
 export const updateAnnouncement = (id, data) => {
   return request.put(`/announcements/${id}`, data)
 }
 
 /**
- * 删除公告
+ * Delete announcement
  */
 export const deleteAnnouncement = (id) => {
   return request.delete(`/announcements/${id}`)
 }
 
-// ==================== 推荐关系 ====================
+// ==================== Referrals ====================
 
 /**
- * 获取推荐关系列表
+ * Get referral list
  */
 export const getReferrals = (params) => {
   return request.get('/referrals', { params })
 }
 
-// ==================== 资质文件 ====================
+// ==================== Documents ====================
 
 /**
- * 获取资质文件配置
+ * Get document configuration
  */
 export const getDocuments = () => {
   return request.get('/documents')

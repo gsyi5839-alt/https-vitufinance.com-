@@ -1622,10 +1622,6 @@ app.post('/api/user/withdraw', sensitiveLimiter, async (req, res) => {
         
         const currentBalance = parseFloat(userBalance[0].usdt_balance);
         
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1350',message:'Withdrawal - balance check',data:{wallet:walletAddr.slice(0,10),balanceBefore:currentBalance,withdrawAmount,fee:withdrawFee,actualAmount},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        
         if (currentBalance < withdrawAmount) {
             return res.status(400).json({
                 success: false,
@@ -1637,20 +1633,13 @@ app.post('/api/user/withdraw', sensitiveLimiter, async (req, res) => {
             });
         }
         
-        // 扣除用户余额（已移除每日一次限制）
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1364',message:'Withdrawal - BEFORE deduction',data:{wallet:walletAddr.slice(0,10),balanceBefore:currentBalance,deductAmount:withdrawAmount},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        
+        // Deduct user balance
         await dbQuery(
             'UPDATE user_balances SET usdt_balance = usdt_balance - ?, total_withdraw = total_withdraw + ?, updated_at = NOW() WHERE wallet_address = ?',
             [withdrawAmount, withdrawAmount, walletAddr]
         );
         
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:1373',message:'Withdrawal - AFTER deduction',data:{wallet:walletAddr.slice(0,10),deductAmount:withdrawAmount,deductionExecuted:true},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-        
-        // 创建提款记录（包含手续费详情）
+        // Create withdrawal record (includes fee details)
         await dbQuery(
             'INSERT INTO withdraw_records (wallet_address, amount, fee, actual_amount, token, to_address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
             [walletAddr, withdrawAmount, withdrawFee, actualAmount, 'USDT', toAddr, 'pending']
@@ -3847,14 +3836,10 @@ app.get('/api/invite/stats', async (req, res) => {
         console.log(`  团队奖励: ${myTeamReward.toFixed(4)} USDT`);
         console.log(`  今日总收入: ${teamDailyIncome.toFixed(4)} USDT`);
         
-        // 计算用户经纪人等级（使用完整版，包含下级经纪人要求）
+        // Calculate user broker level (full version, includes sub-broker requirements)
         const brokerLevel = await calculateUserLevel(walletAddr);
         
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:3455',message:'Broker level calculated',data:{wallet:walletAddr.slice(0,10),brokerLevel,allDirectMembers,qualifiedDirectMembers,totalPerformance:parseFloat(totalPerformance).toFixed(4)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
-        
-        // 获取总推荐奖励（从 referral_rewards 表累计）
+        // Get total referral rewards (from referral_rewards table)
         const referralRewardResult = await dbQuery(
             'SELECT COALESCE(SUM(reward_amount), 0) as total FROM referral_rewards WHERE wallet_address = ?',
             [walletAddr]
@@ -3890,10 +3875,6 @@ app.get('/api/invite/stats', async (req, res) => {
             const targetSubLevel = `level${currentRequirement.subBrokerLevel}`;
             currentSubBrokers = subBrokerStats[targetSubLevel] || 0;
         }
-        
-        // #region agent log
-        fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:3481',message:'API response data',data:{wallet:walletAddr.slice(0,10),brokerLevel,inviteTarget:currentRequirement.directMembers,allDirectMembers,qualifiedDirectMembers,totalPerformance:parseFloat(totalPerformance).toFixed(4)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
         
         // Get admin-configured display adjustments for this user
         // These values are set in admin panel to customize what user sees
@@ -5151,14 +5132,10 @@ async function calculateUserLevel(walletAddr, visitedAddresses = new Set()) {
             return 0;
         }
         
-        // 3. 获取下级经纪人统计（递归计算每个直推成员的等级）
+        // 3. Get sub-broker statistics (recursively calculate level for each direct referral)
         const subBrokerStats = await getSubBrokerStats(walletAddr, visitedAddresses);
         
-        // #region agent log
-        const logCalcLevel = {location:'server.js:4619',message:'calculateUserLevel - checking conditions',data:{wallet:walletAddr.slice(0,10),directCount,totalPerformance:totalPerformance.toFixed(4),subBrokers:subBrokerStats},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logCalcLevel)}).catch(()=>{});
-        // #endregion
-        
-        // 4. 从高到低判断等级
+        // 4. Check level from highest to lowest
         // 5级：直推50人，含2名4级，团队业绩>200000U
         if (directCount >= 50 && totalPerformance > 200000 && subBrokerStats.level4 >= 2) {
             return 5;
@@ -5174,25 +5151,16 @@ async function calculateUserLevel(walletAddr, visitedAddresses = new Set()) {
             return 3;
         }
         
-        // 2级：直推10人，含2名1级，团队业绩>5000U
+        // Level 2: 10 direct referrals, 2 Level 1 sub-brokers, team performance > 5000U
         if (directCount >= 10 && totalPerformance > 5000 && subBrokerStats.level1 >= 2) {
-            // #region agent log
-            const logL2 = {location:'server.js:4638',message:'Level 2 MATCHED',data:{wallet:walletAddr.slice(0,10),directCount,totalPerformance:totalPerformance.toFixed(4),level1SubBrokers:subBrokerStats.level1,returnLevel:2},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logL2)}).catch(()=>{});
-            // #endregion
             return 2;
         }
         
-        // 1级：直推5人，团队业绩>1000U（无下级经纪人要求）
+        // Level 1: 5 direct referrals, team performance > 1000U (no sub-broker requirement)
         if (directCount >= 5 && totalPerformance > 1000) {
-            // #region agent log
-            const logL1 = {location:'server.js:4643',message:'Level 1 MATCHED',data:{wallet:walletAddr.slice(0,10),directCount,totalPerformance:totalPerformance.toFixed(4),returnLevel:1},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logL1)}).catch(()=>{});
-            // #endregion
             return 1;
         }
         
-        // #region agent log
-        const logL0 = {location:'server.js:4651',message:'Level 0 (default)',data:{wallet:walletAddr.slice(0,10),directCount,totalPerformance:totalPerformance.toFixed(4),returnLevel:0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'};await fetch('http://localhost:7242/ingest/10a0bbc0-f589-4d17-9d7f-29d4e679320a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logL0)}).catch(()=>{});
-        // #endregion
         return 0;
     } catch (error) {
         console.error(`[calculateUserLevel] Error for ${walletAddr}:`, error.message);
@@ -6105,6 +6073,142 @@ app.post('/api/error-log', async (req, res) => {
 
 // ==================== 抽奖转盘路由 ====================
 app.use('/api/lucky-wheel', luckyWheelRoutes);
+
+// ==================== 前端错误日志接收API ====================
+
+/**
+ * Receive frontend error logs
+ * POST /api/log/error
+ * 
+ * Accepts error logs from frontend and admin applications
+ * Stores them in the error_logs table for monitoring and debugging
+ */
+app.post('/api/log/error', async (req, res) => {
+    try {
+        const {
+            level = 'error',
+            source = 'frontend',
+            message,
+            stack,
+            metadata,
+            componentName,
+            context,
+            clientType = 'frontend'
+        } = req.body;
+        
+        // Validate required fields
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: 'Error message is required'
+            });
+        }
+        
+        // Sanitize and limit string lengths
+        const sanitizedMessage = String(message).substring(0, 2000);
+        const sanitizedStack = stack ? String(stack).substring(0, 5000) : null;
+        const sanitizedComponent = componentName ? String(componentName).substring(0, 100) : null;
+        
+        // Extract user wallet from context if available
+        const userWallet = context?.walletAddress || req.body.userWallet || null;
+        
+        // Combine metadata with context and client type
+        const combinedMetadata = {
+            ...metadata,
+            context,
+            clientType,
+            componentName: sanitizedComponent,
+            clientIp: req.ip,
+            userAgent: req.headers['user-agent']?.substring(0, 200)
+        };
+        
+        // Log to database using errorLogger
+        await logError({
+            level: ['debug', 'info', 'warn', 'error', 'critical'].includes(level) ? level : 'error',
+            source: `${clientType}_${source}`,
+            message: sanitizedMessage,
+            stack: sanitizedStack,
+            metadata: combinedMetadata,
+            userWallet: userWallet ? String(userWallet).substring(0, 42) : null,
+            requestPath: context?.url || null,
+            requestMethod: 'CLIENT_ERROR'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Error logged successfully'
+        });
+        
+    } catch (error) {
+        console.error('[ErrorLog API] Failed to log error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to log error'
+        });
+    }
+});
+
+/**
+ * Receive admin system error logs
+ * POST /api/admin/log/error
+ * 
+ * Same as frontend but with admin prefix for clarity
+ */
+app.post('/api/admin/log/error', async (req, res) => {
+    try {
+        const {
+            level = 'error',
+            source = 'admin',
+            message,
+            stack,
+            metadata,
+            componentName,
+            context
+        } = req.body;
+        
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: 'Error message is required'
+            });
+        }
+        
+        const sanitizedMessage = String(message).substring(0, 2000);
+        const sanitizedStack = stack ? String(stack).substring(0, 5000) : null;
+        
+        const combinedMetadata = {
+            ...metadata,
+            context,
+            componentName,
+            clientType: 'admin',
+            clientIp: req.ip,
+            adminId: context?.adminId
+        };
+        
+        await logError({
+            level: ['debug', 'info', 'warn', 'error', 'critical'].includes(level) ? level : 'error',
+            source: `admin_${source}`,
+            message: sanitizedMessage,
+            stack: sanitizedStack,
+            metadata: combinedMetadata,
+            userWallet: null,
+            requestPath: context?.url || null,
+            requestMethod: 'ADMIN_CLIENT_ERROR'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Admin error logged successfully'
+        });
+        
+    } catch (error) {
+        console.error('[AdminErrorLog API] Failed to log error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to log error'
+        });
+    }
+});
 
 // ==================== 管理系统路由 ====================
 app.use('/api/admin', adminRoutes);

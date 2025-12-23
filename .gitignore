@@ -53,3 +53,7 @@ uploads/
 # PhotoRec recovery log
 photorec.log
 
+
+# Include database backups for disaster recovery
+!backups/database/*.sql.gz
+!backups/backup.log
