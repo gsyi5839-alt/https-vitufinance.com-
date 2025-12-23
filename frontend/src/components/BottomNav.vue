@@ -1,24 +1,27 @@
 <template>
-  <nav class="bottom-nav" :class="{ 'in-popup': inPopup }">
-    <router-link 
-      v-for="item in navItems" 
-      :key="item.path" 
-      :to="item.path" 
-      class="nav-item"
-      :class="{ active: isActive(item.path) }"
-      @click="handleNavClick(item.path, $event)"
-    >
-      <div class="nav-icon">
-        <img :src="isActive(item.path) ? item.activeIcon : item.icon" :alt="item.label" />
-      </div>
-      <div class="nav-label">
-        <!-- 选中状态显示圆点 -->
-        <span v-if="isActive(item.path)" class="active-dot">·</span>
-        <!-- 未选中状态显示文字 -->
-        <span v-else class="label-text">{{ t(item.label) }}</span>
-      </div>
-    </router-link>
-  </nav>
+  <!-- Use Teleport to mount directly to body, avoiding parent CSS issues on iOS Safari -->
+  <Teleport to="body" :disabled="inPopup">
+    <nav class="bottom-nav" :class="{ 'in-popup': inPopup }">
+      <router-link 
+        v-for="item in navItems" 
+        :key="item.path" 
+        :to="item.path" 
+        class="nav-item"
+        :class="{ active: isActive(item.path) }"
+        @click="handleNavClick(item.path, $event)"
+      >
+        <div class="nav-icon">
+          <img :src="isActive(item.path) ? item.activeIcon : item.icon" :alt="item.label" />
+        </div>
+        <div class="nav-label">
+          <!-- Active state shows dot -->
+          <span v-if="isActive(item.path)" class="active-dot">·</span>
+          <!-- Inactive state shows text -->
+          <span v-else class="label-text">{{ t(item.label) }}</span>
+        </div>
+      </router-link>
+    </nav>
+  </Teleport>
 </template>
 
 <script setup>
@@ -65,30 +68,29 @@ const handleNavClick = (path, event) => {
 
 <style scoped>
 .bottom-nav {
+  /* Fixed positioning - Teleport ensures this works on iOS Safari */
   position: fixed;
-  bottom: 20px; /* Float up slightly, or bottom with rounded corners */
+  bottom: 20px;
   left: 0;
   right: 0;
-  margin: 0 auto; /* Center */
-  width: 404px; /* Standard size 404px */
-  height: 67px; /* Standard height 67px */
+  margin: 0 auto;
+  width: 404px;
+  height: 67px;
   background: #222226;
-  border-radius: 12px; /* Rounded corners consistent with cards */
+  border-radius: 12px;
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.03); /* Border consistent with cards */
-  z-index: 9999; /* Increased z-index to ensure visibility */
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  z-index: 99999; /* Very high z-index since it's now in body */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   
-  /* iOS Safari fix for position: fixed */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  /* iOS Safari hardware acceleration */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
   
-  /* Safe area support for iPhone with notch/home indicator */
+  /* Safe area for iPhone notch/home indicator */
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -169,11 +171,9 @@ const handleNavClick = (path, event) => {
 /* Mobile adaptation */
 @media (max-width: 768px) {
   .bottom-nav {
-    width: 90%; /* Mobile adaptive width, max 404px */
+    width: 90%;
     max-width: 404px;
     bottom: 16px;
-    /* Additional iOS Safari fix */
-    position: fixed !important;
   }
 
   .bottom-nav.in-popup {
@@ -185,20 +185,9 @@ const handleNavClick = (path, event) => {
 /* Small screen phone adaptation */
 @media (max-width: 420px) {
   .bottom-nav {
-    width: 95%; /* Larger percentage for small screens */
+    width: 95%;
     max-width: 404px;
     bottom: 12px;
-  }
-}
-
-/* iOS Safari specific fixes */
-@supports (-webkit-touch-callout: none) {
-  .bottom-nav {
-    /* Force hardware acceleration for iOS */
-    -webkit-transform: translate3d(0, 0, 0);
-    transform: translate3d(0, 0, 0);
-    /* Prevent scrolling issues */
-    will-change: transform;
   }
 }
 </style>

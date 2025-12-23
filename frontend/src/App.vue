@@ -139,29 +139,37 @@ const elLocale = computed(() => {
 }
 
 html {
-  /* 移动端适配：禁止用户缩放 */
+  /* Mobile adaptation: prevent user scaling */
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
-  /* 移动端点击高亮去除 */
+  /* Remove mobile tap highlight */
   -webkit-tap-highlight-color: transparent;
+  /* Fix iOS Safari height issues */
+  height: 100%;
+  /* Prevent overscroll bounce that can affect fixed elements */
+  overscroll-behavior: none;
+}
+
+html, body {
+  /* Prevent horizontal overflow without breaking fixed positioning */
+  max-width: 100vw;
 }
 
 body {
-  /* 使用新的现代字体 - DM Sans */
+  /* Use modern font - DM Sans */
   font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden; /* 隐藏横向滚动条 */
-  /* 移动端平滑滚动 */
-  -webkit-overflow-scrolling: touch;
-  /* 使用原设计的背景和文字颜色 */
+  /* Background and text colors */
   background-color: var(--UI-BG-0);
   color: var(--UI-FG-0);
-  /* 禁止文本选择和复制 */
+  /* Disable text selection and copy */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  /* IMPORTANT: Do NOT use overflow-x: hidden or -webkit-overflow-scrolling: touch here */
+  /* These properties break position: fixed on iOS Safari */
 }
 
 /* 隐藏滚动条但保持滚动功能 - 全局应用 */
