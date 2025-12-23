@@ -27,27 +27,31 @@
 // ============================================================================
 
 import {
-    BROKER_LEVELS,           // 经纪人等级配置表
-    MIN_ROBOT_PURCHASE,      // 最低购买金额要求 (20 USDT)
-    getBrokerLevelConfig,    // 获取等级配置
-    calculateBrokerRewards   // 计算奖励
+    BROKER_LEVELS,             // 经纪人等级配置表
+    MIN_ROBOT_PURCHASE,        // 最低购买金额要求 (20 USDT)
+    MIN_ROBOT_PURCHASE_LV1,    // LV1门槛 (20 USDT)
+    MIN_ROBOT_PURCHASE_LV2_5,  // LV2-5门槛 (100 USDT)
+    getBrokerLevelConfig,      // 获取等级配置
+    calculateBrokerRewards     // 计算奖励
 } from '../utils/teamMath.js';
 
 /**
- * 配置说明（来自 teamMath.js）：
+ * 配置说明（来自 teamMath.js - 2024-12-24 公司文档标准）：
  * 
  * 核心规则：
- * 1. 合格成员：购买 >= 20 USDT 机器人的用户
+ * 1. 合格成员门槛：
+ *    - LV1: 购买 >= 20 USDT 机器人的用户
+ *    - LV2-5: 购买 >= 100 USDT 机器人的用户
  * 2. 直推人数：直接推荐的合格成员数量
  * 3. 团队业绩：所有下线的充值总金额（非机器人购买金额）
  * 4. 下级经纪人：直推成员中达到指定等级的人数
  * 
- * 等级配置：
- * - 1级: 直推5人, 业绩>1000U, 日分红5U, 1WLD
- * - 2级: 直推10人, 2名1级, 业绩>5000U, 日分红15U, 2WLD
- * - 3级: 直推20人, 2名2级, 业绩>20000U, 日分红60U, 3WLD
- * - 4级: 直推30人, 2名3级, 业绩>80000U, 日分红300U, 5WLD
- * - 5级: 直推50人, 2名4级, 业绩>200000U, 日分红1000U, 10WLD
+ * 等级配置（公司文档标准）：
+ * - 1级: 直推5人(≥20U), 业绩>1,000U, 日分红5U, 月薪150U, 1WLD/天
+ * - 2级: 直推10人(≥100U), 2名1级, 业绩>5,000U, 日分红15U, 月薪450U, 2WLD/天
+ * - 3级: 直推20人(≥100U), 2名2级, 业绩>20,000U, 日分红60U, 月薪1,800U, 3WLD/天
+ * - 4级: 直推30人(≥100U), 2名3级, 业绩>80,000U, 日分红300U, 月薪9,000U, 5WLD/天
+ * - 5级: 直推50人(≥100U), 2名4级, 业绩>200,000U, 日分红1,000U, 月薪30,000U, 10WLD/天
  * 
  * 修改配置请到: src/utils/teamMath.js
  */
@@ -74,7 +78,7 @@ function setDbQuery(queryFn) {
  * 计算单个用户的经纪人等级
  * 
  * 算法流程：
- * 1. 获取用户的合格直推人数（购买>=100U机器人）
+ * 1. 获取用户的合格直推人数（LV1: >=20U, LV2-5: >=100U）
  * 2. 获取用户的团队总业绩
  * 3. 递归计算直推成员中各等级经纪人的数量
  * 4. 从高到低判断用户满足哪个等级的条件
@@ -91,15 +95,25 @@ async function calculateBrokerLevel(walletAddr, visitedAddresses = new Set()) {
         }
         visitedAddresses.add(walletAddr);
         
-        // 1. 获取合格直推人数（购买>=100U机器人的直接下线）
-        const directResult = await dbQuery(
+        // 1. 获取合格直推人数 - LV1门槛 (>=20U)
+        const directResultLV1 = await dbQuery(
             `SELECT COUNT(DISTINCT r.wallet_address) as count
              FROM user_referrals r
              INNER JOIN robot_purchases rp ON r.wallet_address = rp.wallet_address
              WHERE r.referrer_address = ? AND rp.price >= ? AND rp.status = 'active'`,
-            [walletAddr, MIN_ROBOT_PURCHASE]
+            [walletAddr, MIN_ROBOT_PURCHASE_LV1]
         );
-        const directCount = parseInt(directResult[0]?.count) || 0;
+        const directCountLV1 = parseInt(directResultLV1[0]?.count) || 0;
+        
+        // 2. 获取合格直推人数 - LV2-5门槛 (>=100U)
+        const directResultLV2_5 = await dbQuery(
+            `SELECT COUNT(DISTINCT r.wallet_address) as count
+             FROM user_referrals r
+             INNER JOIN robot_purchases rp ON r.wallet_address = rp.wallet_address
+             WHERE r.referrer_address = ? AND rp.price >= ? AND rp.status = 'active'`,
+            [walletAddr, MIN_ROBOT_PURCHASE_LV2_5]
+        );
+        const directCountLV2_5 = parseInt(directResultLV2_5[0]?.count) || 0;
         
         // 2. 获取所有团队成员（最多8级深度）
         let allTeamWallets = [];
@@ -135,36 +149,37 @@ async function calculateBrokerLevel(walletAddr, visitedAddresses = new Set()) {
         }
         
         // 如果连1级的基本条件都不满足，直接返回0
-        if (directCount < 5 || totalPerformance <= 1000) {
+        // LV1需要5个>=20U的直推，业绩>1000
+        if (directCountLV1 < 5 || totalPerformance <= 1000) {
             return 0;
         }
         
         // 3. 获取下级经纪人统计（递归计算每个直推成员的等级）
         const subBrokerCounts = await getSubBrokerCounts(walletAddr, visitedAddresses);
         
-        // 4. 从高到低判断等级
-        // 5级：直推50人，2名4级经纪人，业绩>200,000
-        if (directCount >= 50 && totalPerformance > 200000 && subBrokerCounts[4] >= 2) {
+        // 4. 从高到低判断等级（LV2-5使用>=100U门槛）
+        // 5级：直推50人(>=100U)，2名4级经纪人，业绩>200,000
+        if (directCountLV2_5 >= 50 && totalPerformance > 200000 && subBrokerCounts[4] >= 2) {
             return 5;
         }
         
-        // 4级：直推30人，2名3级经纪人，业绩>80,000
-        if (directCount >= 30 && totalPerformance > 80000 && subBrokerCounts[3] >= 2) {
+        // 4级：直推30人(>=100U)，2名3级经纪人，业绩>80,000
+        if (directCountLV2_5 >= 30 && totalPerformance > 80000 && subBrokerCounts[3] >= 2) {
             return 4;
         }
         
-        // 3级：直推20人，2名2级经纪人，业绩>20,000
-        if (directCount >= 20 && totalPerformance > 20000 && subBrokerCounts[2] >= 2) {
+        // 3级：直推20人(>=100U)，2名2级经纪人，业绩>20,000
+        if (directCountLV2_5 >= 20 && totalPerformance > 20000 && subBrokerCounts[2] >= 2) {
             return 3;
         }
         
-        // 2级：直推10人，2名1级经纪人，业绩>5,000
-        if (directCount >= 10 && totalPerformance > 5000 && subBrokerCounts[1] >= 2) {
+        // 2级：直推10人(>=100U)，2名1级经纪人，业绩>5,000
+        if (directCountLV2_5 >= 10 && totalPerformance > 5000 && subBrokerCounts[1] >= 2) {
             return 2;
         }
         
-        // 1级：直推5人，业绩>1,000（无下级经纪人要求）
-        if (directCount >= 5 && totalPerformance > 1000) {
+        // 1级：直推5人(>=20U)，业绩>1,000（无下级经纪人要求）
+        if (directCountLV1 >= 5 && totalPerformance > 1000) {
             return 1;
         }
         
@@ -653,6 +668,8 @@ export {
     // 配置
     BROKER_LEVELS,
     MIN_ROBOT_PURCHASE,
+    MIN_ROBOT_PURCHASE_LV1,
+    MIN_ROBOT_PURCHASE_LV2_5,
     
     // 数据库
     setDbQuery,
@@ -697,7 +714,9 @@ if (isMainModule) {
     console.log('└──────┴──────────┴──────────┴────────────┴──────────┴────────┘');
     
     console.log('\n📐 算法说明:');
-    console.log('1. 合格成员: 购买 >= 100 USDT 机器人的用户');
+    console.log('1. 合格成员门槛:');
+    console.log('   - LV1: 购买 >= 20 USDT 机器人的用户');
+    console.log('   - LV2-5: 购买 >= 100 USDT 机器人的用户');
     console.log('2. 等级判断: 从5级到1级依次检查，返回第一个满足的等级');
     console.log('3. 下级经纪人: 递归计算直推成员中各等级经纪人数量');
     console.log('4. 防重复: 每天只发放一次，通过日期检查防止重复');

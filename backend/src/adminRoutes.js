@@ -2145,6 +2145,7 @@ router.get('/referrals', authMiddleware, async (req, res) => {
     );
     
     // 获取列表，包含计算字段
+    // 修正：使用 referral_rewards 表的实际奖励数据，而非硬编码比例
     const list = await dbQuery(
       `SELECT 
         ur.id,
@@ -2154,16 +2155,11 @@ router.get('/referrals', authMiddleware, async (req, res) => {
         ur.created_at,
         UPPER(RIGHT(ur.wallet_address, 8)) as referral_code,
         (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) as referral_count,
-        COALESCE((SELECT SUM(rp.price * 0.03) FROM robot_purchases rp 
-                  INNER JOIN user_referrals r ON rp.wallet_address = r.wallet_address 
-                  WHERE r.referrer_address = ur.wallet_address), 0) as total_reward,
-        CASE 
-          WHEN (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) >= 50 THEN 5
-          WHEN (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) >= 30 THEN 4
-          WHEN (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) >= 15 THEN 3
-          WHEN (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) >= 5 THEN 2
-          ELSE 1
-        END as level
+        COALESCE((SELECT SUM(reward_amount) FROM referral_rewards 
+                  WHERE referrer_address = ur.wallet_address), 0) as total_reward,
+        COALESCE((SELECT broker_level FROM team_rewards 
+                  WHERE wallet_address = ur.wallet_address 
+                  ORDER BY created_at DESC LIMIT 1), 0) as level
        FROM user_referrals ur
        ${whereClause} 
        ORDER BY ur.created_at DESC 
