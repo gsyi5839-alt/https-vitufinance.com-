@@ -87,7 +87,7 @@ import { useCryptoMarket } from '@/composables/useCryptoMarket'
 import { CRYPTO_LIST, ICON_PATHS } from '@/utils/constants'
 import { useWalletStore } from '@/stores/wallet'
 import SignatureAuthPopup from '@/components/SignatureAuthPopup.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const { t } = useI18n()
 const walletStore = useWalletStore()
@@ -103,9 +103,11 @@ const connectedWallet = ref('')       // Connected wallet address
 // Storage keys
 const SIGNATURE_TIMESTAMP_KEY = 'wallet_signature_timestamp'
 const SIGNATURE_WALLET_KEY = 'wallet_signature_address'
+const BIOMETRIC_TIP_SHOWN_KEY = 'biometric_tip_shown'
 
-// 24 hours in milliseconds
-const SIGNATURE_VALIDITY_MS = 24 * 60 * 60 * 1000
+// Set to 0 to require signature on every visit
+// Set to 24 * 60 * 60 * 1000 for 24-hour validity
+const SIGNATURE_VALIDITY_MS = 0 // Every visit requires signature
 
 /**
  * Check if ethereum wallet is available (TokenPocket, MetaMask, etc.)
@@ -200,6 +202,35 @@ const requestSignature = async (walletAddress) => {
 }
 
 /**
+ * Show biometric setup tip (Face ID / Fingerprint)
+ * Only shown once per device
+ */
+const showBiometricTip = () => {
+  const tipShown = localStorage.getItem(BIOMETRIC_TIP_SHOWN_KEY)
+  if (tipShown) return
+  
+  // Mark as shown
+  localStorage.setItem(BIOMETRIC_TIP_SHOWN_KEY, 'true')
+  
+  // Show tip with slight delay for better UX
+  setTimeout(() => {
+    ElMessageBox.confirm(
+      '为了更便捷的签名体验，建议您在 TokenPocket 钱包中开启人脸识别或指纹识别功能。\n\n' +
+      '开启路径：TokenPocket → 设置 → 安全设置 → 生物识别',
+      '💡 开启人脸识别',
+      {
+        confirmButtonText: '我知道了',
+        cancelButtonText: '不再提醒',
+        type: 'info',
+        center: true
+      }
+    ).catch(() => {
+      // User clicked "不再提醒", already saved
+    })
+  }, 500)
+}
+
+/**
  * Handle signature confirmation - MUST complete to access page
  */
 const handleSignatureConfirm = async () => {
@@ -217,7 +248,7 @@ const handleSignatureConfirm = async () => {
     // Update wallet store
     walletStore.setWallet(walletAddress, 'TokenPocket')
     
-    // Step 2: Request signature (triggers wallet password popup)
+    // Step 2: Request signature (triggers wallet password/biometric popup)
     await requestSignature(walletAddress)
     
     // Step 3: Save timestamp and grant access
@@ -226,6 +257,9 @@ const handleSignatureConfirm = async () => {
     
     console.log('[Signature] ✅ Authentication successful')
     ElMessage.success(t('signatureAuthPopup.success') || '签名认证成功')
+    
+    // Step 4: Show biometric setup tip (only once)
+    showBiometricTip()
     
   } catch (error) {
     console.error('[Signature] Error:', error)
@@ -249,22 +283,23 @@ const handleSignatureConfirm = async () => {
 
 /**
  * Initialize signature auth check on page load
+ * Auto-triggers signature request when in DApp browser
  */
 const initSignatureAuth = async () => {
   console.log('[Signature] Initializing...')
   
-  // Wait for wallet provider to be injected
-  await new Promise(resolve => setTimeout(resolve, 800))
+  // Wait for wallet provider to be injected (TokenPocket needs time)
+  await new Promise(resolve => setTimeout(resolve, 1000))
   
-  // Check if wallet provider exists
+  // Check if wallet provider exists (TokenPocket, MetaMask, etc.)
   if (!hasWalletProvider()) {
-    console.log('[Signature] No wallet provider, allowing normal access')
+    console.log('[Signature] No wallet provider detected, allowing normal access')
     requiresSignature.value = false
     isAuthenticated.value = true
     return
   }
   
-  console.log('[Signature] Wallet provider detected')
+  console.log('[Signature] ✅ Wallet provider detected (TokenPocket/MetaMask)')
   requiresSignature.value = true
   
   try {
@@ -276,9 +311,9 @@ const initSignatureAuth = async () => {
       connectedWallet.value = walletAddress
       console.log('[Signature] Found connected wallet:', walletAddress)
       
-      // Check if signature is still valid
-      if (isSignatureValid(walletAddress)) {
-        console.log('[Signature] Valid signature found, granting access')
+      // Check if signature is still valid (only if SIGNATURE_VALIDITY_MS > 0)
+      if (SIGNATURE_VALIDITY_MS > 0 && isSignatureValid(walletAddress)) {
+        console.log('[Signature] Valid signature cache found, granting access')
         isAuthenticated.value = true
         walletStore.setWallet(walletAddress, 'TokenPocket')
         return
@@ -286,8 +321,17 @@ const initSignatureAuth = async () => {
     }
     
     // Need signature - show blocking overlay
-    console.log('[Signature] Signature required')
+    console.log('[Signature] 🔐 Signature required, showing auth overlay')
     isAuthenticated.value = false
+    
+    // Auto-trigger signature request after short delay
+    // This gives user time to see the overlay before wallet popup appears
+    setTimeout(() => {
+      if (!isAuthenticated.value) {
+        console.log('[Signature] Auto-triggering signature request...')
+        handleSignatureConfirm()
+      }
+    }, 1500)
     
   } catch (error) {
     console.error('[Signature] Init error:', error)
