@@ -105,3 +105,24 @@ mysqldump: [Warning] Using a password on the command line interface can be insec
 mysqldump: Error: 'Access denied; you need (at least one of) the PROCESS privilege(s) for this operation' when trying to dump tablespaces
 mysqldump: 10193427 has insufficient privileges to SHOW CREATE PROCEDURE `AddColumnIfNotExists`!
 [2025-12-23 03:00:02] ERROR: Database backup failed!
+[2025-12-23 23:46:24] [INFO] ========== Starting database backup ==========
+[2025-12-23 23:46:24] [INFO] Backup time: 2025-12-23_23-46-24
+[2025-12-23 23:46:24] [INFO] Project: /www/wwwroot/vitufinance.com
+[2025-12-23 23:46:24] [INFO] Database: xie080886 @ 127.0.0.1:3306
+[2025-12-23 23:46:24] [INFO] Creating database backup...
+mysqldump: [Warning] Using a password on the command line interface can be insecure.
+mysqldump: Error: 'Access denied; you need (at least one of) the PROCESS privilege(s) for this operation' when trying to dump tablespaces
+mysqldump: 10193427 has insufficient privileges to SHOW CREATE PROCEDURE `AddColumnIfNotExists`!
+[2025-12-23 23:46:25] [ERROR] Database backup failed! Exit code: 2
+[2025-12-23 23:46:56] [INFO] ========== Starting database backup ==========
+[2025-12-23 23:46:56] [INFO] Backup time: 2025-12-23_23-46-56
+[2025-12-23 23:46:56] [INFO] Project: /www/wwwroot/vitufinance.com
+[2025-12-23 23:46:57] [INFO] Database: xie080886 @ 127.0.0.1:3306
+[2025-12-23 23:46:57] [INFO] Creating database backup...
+mysqldump: [Warning] Using a password on the command line interface can be insecure.
+[2025-12-23 23:46:57] [INFO] Backup created: xie080886_2025-12-23.sql (5.7M)
+[2025-12-23 23:46:57] [INFO] Compressing backup...
+[2025-12-23 23:46:58] [INFO] Backup compressed: xie080886_2025-12-23.sql.gz (1.1M)
+[2025-12-23 23:46:58] [INFO] Cleaning up old backups...
+[2025-12-23 23:46:58] [INFO] Total backups retained: 3
+[2025-12-23 23:46:58] [INFO] Pushing backup to Git repository...
