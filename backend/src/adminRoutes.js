@@ -4622,7 +4622,7 @@ router.get('/team-dividend/member/:walletAddress', authMiddleware, async (req, r
         wallet_address,
         MAX(broker_level) as current_level,
         COUNT(*) as dividend_records,
-        SUM(reward_amount) as total_dividend,
+        COALESCE(SUM(reward_amount), 0) as total_dividend,
         MAX(reward_date) as last_dividend_date,
         MAX(created_at) as last_dividend_time
       FROM team_rewards
@@ -4630,14 +4630,17 @@ router.get('/team-dividend/member/:walletAddress', authMiddleware, async (req, r
       GROUP BY wallet_address
     `, [addr]);
     
-    if (!memberStats || memberStats.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: '未找到该成员的分红记录'
-      });
-    }
-    
-    const memberData = memberStats[0];
+    // If no dividend records, create empty member data
+    const memberData = memberStats && memberStats.length > 0 
+      ? memberStats[0]
+      : {
+          wallet_address: addr,
+          current_level: 0,
+          dividend_records: 0,
+          total_dividend: 0,
+          last_dividend_date: null,
+          last_dividend_time: null
+        };
     
     // 获取直推人数
     const directCount = await dbQuery(
@@ -4684,6 +4687,28 @@ router.get('/team-dividend/member/:walletAddress', authMiddleware, async (req, r
     }
     
     memberData.team_total = allTeamWallets.length;
+    memberData.team_total_members = allTeamWallets.length;
+    
+    // Calculate team performance (total deposits from all team members)
+    let teamPerformance = 0;
+    if (allTeamWallets.length > 0) {
+      const teamPlaceholders = allTeamWallets.map(() => '?').join(',');
+      const performanceResult = await dbQuery(
+        `SELECT COALESCE(SUM(amount), 0) as total
+         FROM deposit_records
+         WHERE wallet_address IN (${teamPlaceholders}) AND status = 'completed'`,
+        allTeamWallets
+      );
+      teamPerformance = parseFloat(performanceResult[0]?.total) || 0;
+    }
+    memberData.team_performance = teamPerformance;
+    
+    // Get user registration time
+    const userInfo = await dbQuery(
+      'SELECT created_at FROM users WHERE wallet_address = ?',
+      [addr]
+    );
+    memberData.created_at = userInfo[0]?.created_at || null;
     
     res.json({
       success: true,
@@ -4701,24 +4726,30 @@ router.get('/team-dividend/member/:walletAddress', authMiddleware, async (req, r
 /**
  * 获取成员的直推成员列表
  * GET /api/admin/team-dividend/member/:walletAddress/direct-members
+ * 
+ * Returns direct members with their broker level and investment info
  */
 router.get('/team-dividend/member/:walletAddress/direct-members', authMiddleware, async (req, res) => {
   try {
     const { walletAddress } = req.params;
     const addr = walletAddress.toLowerCase();
     
-    // 获取直推成员列表
+    // Get direct members with investment and broker level info
     const directMembers = await dbQuery(`
       SELECT 
         ur.wallet_address,
         ur.created_at,
         COUNT(DISTINCT rp.id) as robot_count,
-        COALESCE(SUM(rp.price), 0) as total_investment
+        COALESCE(SUM(rp.price), 0) as total_investment,
+        (SELECT COUNT(*) FROM user_referrals WHERE referrer_address = ur.wallet_address) as sub_count,
+        COALESCE((SELECT MAX(broker_level) FROM team_rewards 
+                  WHERE wallet_address = ur.wallet_address 
+                  AND reward_type = 'daily_dividend'), 0) as broker_level
       FROM user_referrals ur
       LEFT JOIN robot_purchases rp ON ur.wallet_address = rp.wallet_address AND rp.status = 'active'
       WHERE ur.referrer_address = ?
       GROUP BY ur.wallet_address, ur.created_at
-      ORDER BY ur.created_at DESC
+      ORDER BY broker_level DESC, total_investment DESC, ur.created_at DESC
     `, [addr]);
     
     res.json({
@@ -4861,79 +4892,8 @@ router.get('/team-dividend/teams', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * 获取单个成员的详细分红记录
- * GET /api/admin/team-dividend/member/:wallet
- */
-router.get('/team-dividend/member/:wallet', authMiddleware, async (req, res) => {
-  try {
-    const { wallet } = req.params;
-    const { page = 1, pageSize = 50 } = req.query;
-    
-    const walletAddr = wallet.toLowerCase();
-    const offset = (parseInt(page) - 1) * parseInt(pageSize);
-    const limit = parseInt(pageSize);
-    
-    // 获取分红记录总数
-    const countResult = await dbQuery(
-      `SELECT COUNT(*) as total FROM team_rewards 
-       WHERE wallet_address = ? AND reward_type = 'daily_dividend'`,
-      [walletAddr]
-    );
-    const total = parseInt(countResult[0]?.total) || 0;
-    
-    // 获取分红记录
-    const records = await dbQuery(
-      `SELECT 
-        id,
-        broker_level,
-        reward_amount,
-        reward_date,
-        created_at
-      FROM team_rewards
-      WHERE wallet_address = ? AND reward_type = 'daily_dividend'
-      ORDER BY reward_date DESC, created_at DESC
-      LIMIT ? OFFSET ?`,
-      [walletAddr, limit, offset]
-    );
-    
-    // 获取团队统计
-    const directCount = await dbQuery(
-      'SELECT COUNT(*) as count FROM user_referrals WHERE referrer_address = ?',
-      [walletAddr]
-    );
-    
-    const qualifiedCount = await dbQuery(
-      `SELECT COUNT(DISTINCT r.wallet_address) as count
-       FROM user_referrals r
-       INNER JOIN robot_purchases rp ON r.wallet_address = rp.wallet_address
-       WHERE r.referrer_address = ? AND rp.price >= ? AND rp.status = 'active'`,
-      [walletAddr, MIN_ROBOT_PURCHASE]
-    );
-    
-    res.json({
-      success: true,
-      data: {
-        wallet_address: walletAddr,
-        direct_members: parseInt(directCount[0]?.count) || 0,
-        qualified_members: parseInt(qualifiedCount[0]?.count) || 0,
-        records,
-        pagination: {
-          page: parseInt(page),
-          pageSize: parseInt(pageSize),
-          total,
-          totalPages: Math.ceil(total / parseInt(pageSize))
-        }
-      }
-    });
-  } catch (error) {
-    console.error('获取成员分红记录失败:', error.message);
-    res.status(500).json({
-      success: false,
-      message: '获取数据失败'
-    });
-  }
-});
+// NOTE: Duplicate route removed - use /team-dividend/member/:walletAddress instead
+// The /team-dividend/records API can be used with wallet parameter to get paginated records
 
 /**
  * 分红记录综合查询
