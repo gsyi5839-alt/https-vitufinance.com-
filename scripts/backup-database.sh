@@ -147,57 +147,57 @@ Server: $(hostname)
 # =============================================================================
 
 main() {
-    log_message "========== Starting database backup =========="
+log_message "========== Starting database backup =========="
     log_message "Backup time: $DATETIME"
     log_message "Project: $PROJECT_DIR"
     
     # Rotate log if needed
     rotate_log
-    
-    # Check if .env file exists
-    if [ ! -f "$ENV_FILE" ]; then
+
+# Check if .env file exists
+if [ ! -f "$ENV_FILE" ]; then
         log_error ".env file not found at $ENV_FILE"
-        exit 1
-    fi
-    
+    exit 1
+fi
+
     # Read database configuration
-    DB_HOST=$(get_env_var "DB_HOST")
-    DB_PORT=$(get_env_var "DB_PORT")
-    DB_USER=$(get_env_var "DB_USER")
-    DB_PASSWORD=$(get_env_var "DB_PASSWORD")
-    DB_NAME=$(get_env_var "DB_NAME")
-    
+DB_HOST=$(get_env_var "DB_HOST")
+DB_PORT=$(get_env_var "DB_PORT")
+DB_USER=$(get_env_var "DB_USER")
+DB_PASSWORD=$(get_env_var "DB_PASSWORD")
+DB_NAME=$(get_env_var "DB_NAME")
+
     # Set defaults
-    DB_HOST=${DB_HOST:-127.0.0.1}
-    DB_PORT=${DB_PORT:-3306}
-    DB_USER=${DB_USER:-root}
-    
-    # Validate required variables
-    if [ -z "$DB_NAME" ]; then
+DB_HOST=${DB_HOST:-127.0.0.1}
+DB_PORT=${DB_PORT:-3306}
+DB_USER=${DB_USER:-root}
+
+# Validate required variables
+if [ -z "$DB_NAME" ]; then
         log_error "DB_NAME not found in .env file"
-        exit 1
-    fi
-    
-    log_message "Database: $DB_NAME @ $DB_HOST:$DB_PORT"
-    
+    exit 1
+fi
+
+log_message "Database: $DB_NAME @ $DB_HOST:$DB_PORT"
+
     # Create backup directory
-    mkdir -p "$BACKUP_DIR"
-    
+mkdir -p "$BACKUP_DIR"
+
     # Backup filename (include datetime for uniqueness)
-    BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql"
-    BACKUP_FILE_GZ="$BACKUP_FILE.gz"
-    
+BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql"
+BACKUP_FILE_GZ="$BACKUP_FILE.gz"
+
     # Remove old backup for today (update daily)
-    rm -f "$BACKUP_FILE" "$BACKUP_FILE_GZ" 2>/dev/null
-    
-    # Perform MySQL dump
-    log_message "Creating database backup..."
+rm -f "$BACKUP_FILE" "$BACKUP_FILE_GZ" 2>/dev/null
+
+# Perform MySQL dump
+log_message "Creating database backup..."
     
     # Build mysqldump command
     # Note: Using --no-tablespaces to avoid PROCESS privilege requirement
     # Using --skip-routines if user lacks privilege to dump procedures
     local DUMP_CMD="mysqldump -h '$DB_HOST' -P '$DB_PORT' -u '$DB_USER'"
-    if [ -n "$DB_PASSWORD" ]; then
+if [ -n "$DB_PASSWORD" ]; then
         DUMP_CMD="$DUMP_CMD -p'$DB_PASSWORD'"
     fi
     DUMP_CMD="$DUMP_CMD --single-transaction --triggers --add-drop-table --complete-insert --no-tablespaces '$DB_NAME'"
@@ -206,34 +206,34 @@ main() {
     eval "$DUMP_CMD" > "$BACKUP_FILE" 2>> "$LOG_FILE"
     
     local DUMP_EXIT_CODE=$?
-    
-    # Check if backup was successful
+
+# Check if backup was successful
     if [ $DUMP_EXIT_CODE -ne 0 ] || [ ! -s "$BACKUP_FILE" ]; then
         log_error "Database backup failed! Exit code: $DUMP_EXIT_CODE"
-        rm -f "$BACKUP_FILE" 2>/dev/null
-        exit 1
-    fi
-    
-    # Get backup file size
-    BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+    rm -f "$BACKUP_FILE" 2>/dev/null
+    exit 1
+fi
+
+# Get backup file size
+BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
     log_message "Backup created: $(basename $BACKUP_FILE) ($BACKUP_SIZE)"
-    
+
     # Compress backup
-    log_message "Compressing backup..."
+log_message "Compressing backup..."
     gzip -9 -f "$BACKUP_FILE"
-    
+
     if [ $? -eq 0 ] && [ -f "$BACKUP_FILE_GZ" ]; then
-        COMPRESSED_SIZE=$(du -h "$BACKUP_FILE_GZ" | cut -f1)
+    COMPRESSED_SIZE=$(du -h "$BACKUP_FILE_GZ" | cut -f1)
         log_message "Backup compressed: $(basename $BACKUP_FILE_GZ) ($COMPRESSED_SIZE)"
-    else
+else
         log_warning "Compression failed, keeping uncompressed backup"
-        BACKUP_FILE_GZ="$BACKUP_FILE"
-    fi
-    
+    BACKUP_FILE_GZ="$BACKUP_FILE"
+fi
+
     # Cleanup old backups
     cleanup_old_backups
-    
-    # Push to Git
+
+# Push to Git
     if push_to_git; then
         log_message "Git push completed successfully"
     else
@@ -246,10 +246,10 @@ main() {
     log_message "  File: $(basename $BACKUP_FILE_GZ)"
     log_message "  Size: $COMPRESSED_SIZE"
     log_message "  Location: $BACKUP_DIR"
-    log_message "========== Backup completed successfully =========="
-    log_message ""
-    
-    exit 0
+log_message "========== Backup completed successfully =========="
+log_message ""
+
+exit 0
 }
 
 # Run main function

@@ -66,21 +66,30 @@ const handleNavClick = (path, event) => {
 <style scoped>
 .bottom-nav {
   position: fixed;
-  bottom: 20px; /* 稍微上浮一点，或者贴底但有圆角 */
+  bottom: 20px; /* Float up slightly, or bottom with rounded corners */
   left: 0;
   right: 0;
-  margin: 0 auto; /* 居中 */
-  width: 404px; /* 标准尺寸 404px */
-  height: 67px; /* 标准高度 67px */
+  margin: 0 auto; /* Center */
+  width: 404px; /* Standard size 404px */
+  height: 67px; /* Standard height 67px */
   background: #222226;
-  border-radius: 12px; /* 与卡片一致的圆角 */
+  border-radius: 12px; /* Rounded corners consistent with cards */
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.03); /* 与卡片一致的边框 */
-  z-index: 50;
+  border: 1px solid rgba(255, 255, 255, 0.03); /* Border consistent with cards */
+  z-index: 9999; /* Increased z-index to ensure visibility */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  
+  /* iOS Safari fix for position: fixed */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  
+  /* Safe area support for iPhone with notch/home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 /* 弹窗内的导航栏样式 */
@@ -157,12 +166,14 @@ const handleNavClick = (path, event) => {
   font-weight: 500;
 }
 
-/* 移动端适配 */
+/* Mobile adaptation */
 @media (max-width: 768px) {
   .bottom-nav {
-    width: 90%; /* 移动端自适应宽度，最大不超过404px */
+    width: 90%; /* Mobile adaptive width, max 404px */
     max-width: 404px;
     bottom: 16px;
+    /* Additional iOS Safari fix */
+    position: fixed !important;
   }
 
   .bottom-nav.in-popup {
@@ -171,12 +182,23 @@ const handleNavClick = (path, event) => {
   }
 }
 
-/* 小屏手机适配 */
+/* Small screen phone adaptation */
 @media (max-width: 420px) {
   .bottom-nav {
-    width: 95%; /* 小屏占比更大 */
+    width: 95%; /* Larger percentage for small screens */
     max-width: 404px;
     bottom: 12px;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .bottom-nav {
+    /* Force hardware acceleration for iOS */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    /* Prevent scrolling issues */
+    will-change: transform;
   }
 }
 </style>

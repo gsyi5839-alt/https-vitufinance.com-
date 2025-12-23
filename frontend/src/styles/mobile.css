@@ -194,3 +194,45 @@
     padding: 10px 14px;
   }
 }
+
+/* ==================== iOS Safari Fixed Position Fixes ==================== */
+/* iOS Safari has known issues with position: fixed when scrolling */
+/* These fixes ensure fixed elements stay in place */
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific styles */
+  
+  /* Ensure html and body don't create new stacking context */
+  html, body {
+    /* Avoid transforms that break fixed positioning */
+    transform: none !important;
+    -webkit-transform: none !important;
+    /* Prevent elastic scrolling issues */
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+  }
+  
+  /* Force fixed elements to use hardware acceleration */
+  .bottom-nav,
+  [style*="position: fixed"],
+  [style*="position:fixed"] {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+/* Prevent parent containers from breaking fixed positioning */
+/* This targets common page wrapper classes */
+.home-page,
+.assets-page,
+.robot-page,
+.follow-page,
+.invite-page,
+.pledge-page,
+.announcement-page {
+  /* Ensure no transform is applied that could break child fixed elements */
+  transform: none;
+  -webkit-transform: none;
+}

@@ -216,7 +216,17 @@ input, textarea, select {
   min-height: 100vh;
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  /* Note: overflow-x: hidden on #app can break position: fixed on iOS Safari */
+  /* Moving this to body instead to avoid containing block issues */
+}
+
+/* iOS Safari fixed position support */
+@supports (-webkit-touch-callout: none) {
+  #app {
+    /* Ensure no transform or will-change on parent that could break fixed positioning */
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
 }
 
 /* 移动端基础字体大小 */
