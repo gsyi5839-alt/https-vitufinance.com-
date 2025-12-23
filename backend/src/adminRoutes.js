@@ -4703,12 +4703,18 @@ router.get('/team-dividend/member/:walletAddress', authMiddleware, async (req, r
     }
     memberData.team_performance = teamPerformance;
     
-    // Get user registration time
-    const userInfo = await dbQuery(
-      'SELECT created_at FROM users WHERE wallet_address = ?',
-      [addr]
+    // Get user registration time from user_referrals or deposit_records
+    const userTimeResult = await dbQuery(
+      `SELECT MIN(created_at) as created_at FROM (
+        SELECT created_at FROM user_referrals WHERE wallet_address = ?
+        UNION
+        SELECT created_at FROM deposit_records WHERE wallet_address = ?
+        UNION
+        SELECT created_at FROM robot_purchases WHERE wallet_address = ?
+      ) as times`,
+      [addr, addr, addr]
     );
-    memberData.created_at = userInfo[0]?.created_at || null;
+    memberData.created_at = userTimeResult[0]?.created_at || null;
     
     res.json({
       success: true,
