@@ -615,6 +615,12 @@
     "confirm": "Commencer la signature"
   },
   "depositModal": {
+    "title": "Dépôt",
+    "selectNetwork": "Sélectionner le réseau",
+    "lowGasFee": "Frais de gaz bas",
+    "mainnet": "Réseau principal",
+    "enterAmount": "Entrez le montant",
+    "minDepositTip": "Conseil: Le montant minimum de dépôt est de 20 USDT",
     "enterValidAmount": "Veuillez saisir un montant valide (minimum 20 USDT)",
     "openInWalletBrowser": "Veuillez ouvrir dans le navigateur de portefeuille (TokenPocket, MetaMask, etc.)",
     "connectWalletFirst": "Veuillez d'abord connecter votre portefeuille",

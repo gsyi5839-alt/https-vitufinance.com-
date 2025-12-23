@@ -615,6 +615,12 @@
     "confirm": "Qala Ukusayina"
   },
   "depositModal": {
+    "title": "Faka imali",
+    "selectNetwork": "Khetha inethiwekhi",
+    "lowGasFee": "Imali ye-Gas ephansi",
+    "mainnet": "Inethiwekhi eyinhloko",
+    "enterAmount": "Faka inani",
+    "minDepositTip": "Ithiphu: Inani elincane lokufaka yi-20 USDT",
     "enterValidAmount": "Sicela ufake inani elivumelekile (okuncane 20 USDT)",
     "openInWalletBrowser": "Sicela uvule kusiphequluli sesikhwama (TokenPocket, MetaMask, njll.)",
     "connectWalletFirst": "Sicela uxhume isikhwama sakho kuqala",

@@ -615,6 +615,12 @@
     "confirm": "Bắt đầu ký"
   },
   "depositModal": {
+    "title": "Gửi tiền",
+    "selectNetwork": "Chọn mạng",
+    "lowGasFee": "Phí Gas thấp",
+    "mainnet": "Mạng chính",
+    "enterAmount": "Nhập số tiền",
+    "minDepositTip": "Mẹo: Số tiền gửi tối thiểu là 20 USDT",
     "enterValidAmount": "Vui lòng nhập số tiền hợp lệ (tối thiểu 20 USDT)",
     "openInWalletBrowser": "Vui lòng mở trong trình duyệt ví (TokenPocket, MetaMask, v.v.)",
     "connectWalletFirst": "Vui lòng kết nối ví của bạn trước",

@@ -615,6 +615,12 @@
     "confirm": "Mulakan tandatangan"
   },
   "depositModal": {
+    "title": "Deposit",
+    "selectNetwork": "Pilih Rangkaian",
+    "lowGasFee": "Yuran Gas Rendah",
+    "mainnet": "Rangkaian Utama",
+    "enterAmount": "Masukkan jumlah",
+    "minDepositTip": "Petua: Jumlah deposit minimum ialah 20 USDT",
     "enterValidAmount": "Sila masukkan jumlah yang sah (minimum 20 USDT)",
     "openInWalletBrowser": "Sila buka dalam pelayar dompet (TokenPocket, MetaMask, dll.)",
     "connectWalletFirst": "Sila sambungkan dompet anda dahulu",

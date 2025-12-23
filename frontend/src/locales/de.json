@@ -615,6 +615,12 @@
     "confirm": "Signatur starten"
   },
   "depositModal": {
+    "title": "Einzahlung",
+    "selectNetwork": "Netzwerk auswählen",
+    "lowGasFee": "Niedrige Gasgebühr",
+    "mainnet": "Hauptnetz",
+    "enterAmount": "Betrag eingeben",
+    "minDepositTip": "Tipp: Der Mindesteinzahlungsbetrag beträgt 20 USDT",
     "enterValidAmount": "Bitte geben Sie einen gültigen Betrag ein (mindestens 20 USDT)",
     "openInWalletBrowser": "Bitte im Wallet-Browser öffnen (TokenPocket, MetaMask usw.)",
     "connectWalletFirst": "Bitte verbinden Sie zuerst Ihre Brieftasche",

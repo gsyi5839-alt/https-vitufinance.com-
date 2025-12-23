@@ -614,6 +614,12 @@
     "confirm": "Почати підпис"
   },
   "depositModal": {
+    "title": "Внесення",
+    "selectNetwork": "Вибрати мережу",
+    "lowGasFee": "Низька комісія за газ",
+    "mainnet": "Основна мережа",
+    "enterAmount": "Введіть суму",
+    "minDepositTip": "Підказка: Мінімальна сума внесення — 20 USDT",
     "enterValidAmount": "Будь ласка, введіть дійсну суму (мінімум 20 USDT)",
     "openInWalletBrowser": "Будь ласка, відкрийте в браузері гаманця (TokenPocket, MetaMask тощо)",
     "connectWalletFirst": "Будь ласка, спочатку підключіть гаманець",

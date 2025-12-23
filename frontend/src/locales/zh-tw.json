@@ -393,8 +393,7 @@
     "referralReward": "推薦獎勵",
     "teamReward": "團隊獎勵",
     "details": "詳情",
-    "teamReward": "團隊獎勵",
-    "teamRewardRecord": "團隊獎勵",
+    "teamRewardRecord": "團隊獎勵記錄",
     "dailyDividend": "每日分紅",
     "deposit": "充值",
     "withdraw": "提款",
@@ -547,6 +546,12 @@
     "connectWalletHint": "請連接錢包以查看和領取每日獎勵"
   },
   "depositModal": {
+    "title": "充值",
+    "selectNetwork": "選擇網絡",
+    "lowGasFee": "低 Gas 費",
+    "mainnet": "主網",
+    "enterAmount": "輸入金額",
+    "minDepositTip": "提示：最低充值門檻為 20 USDT",
     "enterValidAmount": "請輸入有效金額（最低 20 USDT）",
     "openInWalletBrowser": "請在錢包瀏覽器中打開（TokenPocket、MetaMask 等）",
     "connectWalletFirst": "請先連接您的錢包",

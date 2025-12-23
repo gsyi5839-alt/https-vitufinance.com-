@@ -615,6 +615,12 @@
     "confirm": "Mulai Tanda Tangan"
   },
   "depositModal": {
+    "title": "Setoran",
+    "selectNetwork": "Pilih Jaringan",
+    "lowGasFee": "Biaya Gas Rendah",
+    "mainnet": "Jaringan Utama",
+    "enterAmount": "Masukkan jumlah",
+    "minDepositTip": "Tips: Jumlah setoran minimum adalah 20 USDT",
     "enterValidAmount": "Harap masukkan jumlah yang valid (minimum 20 USDT)",
     "openInWalletBrowser": "Harap buka di browser dompet (TokenPocket, MetaMask, dll.)",
     "connectWalletFirst": "Harap hubungkan dompet Anda terlebih dahulu",

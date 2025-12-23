@@ -602,6 +602,12 @@
     "confirm": "بدء التوقيع"
   },
   "depositModal": {
+    "title": "إيداع",
+    "selectNetwork": "اختر الشبكة",
+    "lowGasFee": "رسوم غاز منخفضة",
+    "mainnet": "الشبكة الرئيسية",
+    "enterAmount": "أدخل المبلغ",
+    "minDepositTip": "تلميح: الحد الأدنى للإيداع هو 20 USDT",
     "enterValidAmount": "يرجى إدخال مبلغ صالح (الحد الأدنى 20 USDT)",
     "openInWalletBrowser": "يرجى الفتح في متصفح المحفظة (TokenPocket, MetaMask, إلخ)",
     "connectWalletFirst": "يرجى توصيل محفظتك أولاً",

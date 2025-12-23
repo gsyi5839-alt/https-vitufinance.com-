@@ -615,6 +615,12 @@
     "confirm": "Iniciar firma"
   },
   "depositModal": {
+    "title": "Depósito",
+    "selectNetwork": "Seleccionar red",
+    "lowGasFee": "Tarifa de gas baja",
+    "mainnet": "Red principal",
+    "enterAmount": "Ingrese el monto",
+    "minDepositTip": "Consejo: El monto mínimo de depósito es 20 USDT",
     "enterValidAmount": "Por favor ingrese un monto válido (mínimo 20 USDT)",
     "openInWalletBrowser": "Por favor abra en el navegador de billetera (TokenPocket, MetaMask, etc.)",
     "connectWalletFirst": "Por favor conecta tu billetera primero",

@@ -511,6 +511,12 @@
     "connectWalletHint": "Please connect your wallet to view and claim daily rewards"
   },
   "depositModal": {
+    "title": "Deposit",
+    "selectNetwork": "Select Network",
+    "lowGasFee": "Low Gas Fee",
+    "mainnet": "Mainnet",
+    "enterAmount": "Enter the amount",
+    "minDepositTip": "Tip: The minimum deposit threshold is 20 USDT",
     "enterValidAmount": "Please enter a valid amount (minimum 20 USDT)",
     "openInWalletBrowser": "Please open in wallet browser (TokenPocket, MetaMask, etc.)",
     "connectWalletFirst": "Please connect your wallet first",

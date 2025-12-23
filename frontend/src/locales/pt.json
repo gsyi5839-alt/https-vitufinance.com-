@@ -615,6 +615,12 @@
     "confirm": "Iniciar assinatura"
   },
   "depositModal": {
+    "title": "Depósito",
+    "selectNetwork": "Selecionar Rede",
+    "lowGasFee": "Taxa de Gás Baixa",
+    "mainnet": "Rede Principal",
+    "enterAmount": "Digite o valor",
+    "minDepositTip": "Dica: O valor mínimo de depósito é 20 USDT",
     "enterValidAmount": "Por favor, insira um valor válido (mínimo 20 USDT)",
     "openInWalletBrowser": "Por favor, abra no navegador da carteira (TokenPocket, MetaMask, etc.)",
     "connectWalletFirst": "Por favor, conecte sua carteira primeiro",

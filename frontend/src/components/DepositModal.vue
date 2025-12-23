@@ -1,15 +1,15 @@
 <template>
-  <!-- 充值弹窗 -->
+  <!-- Deposit Modal -->
   <div v-if="visible" class="deposit-modal-overlay" @click.self="closeModal">
     <div class="deposit-modal">
-      <!-- 标题 -->
-      <h2 class="modal-title">Deposit</h2>
+      <!-- Title -->
+      <h2 class="modal-title">{{ t('depositModal.title') }}</h2>
       
-      <!-- 链选择区域 -->
+      <!-- Chain Selection Area -->
       <div class="chain-select-section">
-        <label class="input-label">Select Network</label>
+        <label class="input-label">{{ t('depositModal.selectNetwork') }}</label>
         <div class="chain-buttons">
-          <!-- BSC 选择按钮 -->
+          <!-- BSC Selection Button -->
           <button 
             class="chain-btn"
             :class="{ selected: selectedChain === 'BSC' }"
@@ -18,11 +18,11 @@
             <img src="/static/bsc-chain.png" alt="BSC" class="chain-logo-img" />
             <div class="chain-info">
               <span class="chain-name">BSC</span>
-              <span class="chain-desc">Low Gas Fee</span>
+              <span class="chain-desc">{{ t('depositModal.lowGasFee') }}</span>
             </div>
           </button>
           
-          <!-- ETH 选择按钮 -->
+          <!-- ETH Selection Button -->
           <button 
             class="chain-btn"
             :class="{ selected: selectedChain === 'ETH' }"
@@ -31,15 +31,15 @@
             <img src="/static/eth-chain.png" alt="ETH" class="chain-logo-img" />
             <div class="chain-info">
               <span class="chain-name">Ethereum</span>
-              <span class="chain-desc">Mainnet</span>
+              <span class="chain-desc">{{ t('depositModal.mainnet') }}</span>
             </div>
           </button>
         </div>
       </div>
       
-      <!-- 输入区域 -->
+      <!-- Input Area -->
       <div class="input-section">
-        <label class="input-label">Enter the amount</label>
+        <label class="input-label">{{ t('depositModal.enterAmount') }}</label>
         <div class="amount-input-wrapper">
           <input 
             v-model="depositAmount" 
@@ -52,7 +52,7 @@
         </div>
       </div>
       
-      <!-- 快捷金额按钮 -->
+      <!-- Quick Amount Buttons -->
       <div class="quick-amounts">
         <button 
           v-for="amount in quickAmounts" 
@@ -65,18 +65,18 @@
         </button>
       </div>
       
-      <!-- 提示 -->
-      <p class="tip-text">Tip: The minimum deposit threshold is 20 USDT</p>
+      <!-- Tip -->
+      <p class="tip-text">{{ t('depositModal.minDepositTip') }}</p>
 
-      <!-- 按钮区域 -->
+      <!-- Button Area -->
       <div class="button-group">
-        <button class="btn-cancel" @click="closeModal">Cancel</button>
+        <button class="btn-cancel" @click="closeModal">{{ t('common.cancel') }}</button>
         <button 
           class="btn-sure" 
           :disabled="!isValidAmount || isProcessing"
           @click="handleDeposit"
         >
-          {{ isProcessing ? 'Processing...' : 'Sure' }}
+          {{ isProcessing ? t('common.processing') : t('common.confirm') }}
         </button>
       </div>
     </div>
