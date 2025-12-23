@@ -270,6 +270,13 @@
       @compensate="handleCompensateFromDetail"
     />
 
+    <!-- 团队详情弹窗 -->
+    <TeamDetailDialog
+      v-model="teamDetailVisible"
+      :leader-address="selectedTeamLeaderAddress"
+      @view-member="handleViewMemberFromTeam"
+    />
+
     <!-- 补发分红对话框 -->
     <el-dialog v-model="compensateDialogVisible" title="补发分红" width="500px">
       <el-form :model="compensateForm" label-width="120px">
@@ -309,6 +316,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Coin, User, Calendar, TrendCharts } from '@element-plus/icons-vue'
 import request from '@/api'
 import TeamMemberDetailDialog from '@/components/TeamMemberDetailDialog.vue'
+import TeamDetailDialog from '@/components/TeamDetailDialog.vue'
 
 const API_BASE = '/team-dividend'
 
@@ -515,6 +523,10 @@ const handleCompensate = async () => {
 const memberDetailVisible = ref(false)
 const selectedMemberAddress = ref('')
 
+// 团队详情弹窗
+const teamDetailVisible = ref(false)
+const selectedTeamLeaderAddress = ref('')
+
 // 查看成员详情
 const viewMemberDetail = (row) => {
   selectedMemberAddress.value = row.wallet_address
@@ -529,9 +541,15 @@ const handleCompensateFromDetail = (memberData) => {
 
 // 查看团队详情
 const viewTeamDetail = (row) => {
-  ElMessageBox.alert(`团队领导人: ${row.leader_address}<br>查看详情功能开发中...`, '团队详情', {
-    dangerouslyUseHTMLString: true
-  })
+  selectedTeamLeaderAddress.value = row.leader_address
+  teamDetailVisible.value = true
+}
+
+// 从团队详情跳转到成员详情
+const handleViewMemberFromTeam = (teamData) => {
+  teamDetailVisible.value = false
+  selectedMemberAddress.value = teamData.leader_address || teamData.wallet_address
+  memberDetailVisible.value = true
 }
 
 // 工具函数
