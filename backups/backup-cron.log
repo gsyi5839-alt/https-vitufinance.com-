@@ -2483,3 +2483,30 @@
 [2026-03-05 02:00:06] 3. Generating file integrity hashes...
 [2026-03-05 02:00:06]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260305_020001.sha256
 [2026-03-05 02:00:06] 4. Checking for git changes...
+[main c76353ca] Auto-backup: 20260305_020001
+ 9 files changed, 1805 insertions(+), 2 deletions(-)
+ delete mode 100644 backups/critical/critical_20260224_020001.tar.gz
+ create mode 100644 backups/critical/critical_20260305_020001.tar.gz
+ rename backups/critical/{hashes_20260224_020001.sha256 => hashes_20260305_020001.sha256} (87%)
+ rename backups/daily/{db_20260224_020001.sql.gz => db_20260305_020001.sql.gz} (60%)
+ delete mode 100644 backups/database/xie080886_2026-02-22.sql.gz
+[2026-03-05 02:00:07]    Git commit created
+[2026-03-05 02:00:07] 5. Cleaning up old backups...
+[2026-03-05 02:00:07]    Old backups cleaned (keeping last 7 days)
+[2026-03-05 02:00:07] ==========================================
+[2026-03-05 02:00:07] Backup completed successfully!
+[2026-03-05 02:00:07] ==========================================
+   Critical files: 112K
+   Database: 17M
+[2026-03-05 02:00:07]    Total backup size: 193M
+[2026-03-05 02:00:07] ==========================================
+[2026-03-06 02:00:01] ==========================================
+[2026-03-06 02:00:01] Starting backup: vitufinance_backup_20260306_020001
+[2026-03-06 02:00:01] ==========================================
+[2026-03-06 02:00:01] 1. Backing up critical source files...
+[2026-03-06 02:00:01]    Critical files backed up: /www/wwwroot/vitufinance.com/backups/critical/critical_20260306_020001.tar.gz
+[2026-03-06 02:00:01] 2. Backing up database...
+[2026-03-06 02:00:05]    Database backed up: /www/wwwroot/vitufinance.com/backups/daily/db_20260306_020001.sql.gz
+[2026-03-06 02:00:05] 3. Generating file integrity hashes...
+[2026-03-06 02:00:05]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260306_020001.sha256
+[2026-03-06 02:00:05] 4. Checking for git changes...
