@@ -40,9 +40,9 @@ router.get('/deposits/check-new', authMiddleware, async (req, res) => {
     const { last_id = 0 } = req.query;
     const lastId = parseInt(last_id);
     
-    // 查询新充值数量和最新记录
+    // 查询新充值数量和最新记录（只查询已完成的充值，避免pending/failed状态的重复通知）
     const newDeposits = await dbQuery(
-      `SELECT * FROM deposit_records WHERE id > ? ORDER BY id DESC`,
+      `SELECT * FROM deposit_records WHERE id > ? AND status = 'completed' ORDER BY id DESC`,
       [lastId]
     );
     

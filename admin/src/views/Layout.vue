@@ -539,8 +539,8 @@ const notificationSound = ref(null)
 // 新充值数量
 const newDepositCount = ref(0)
 
-// 最后检查的充值ID
-const lastDepositId = ref(0)
+// 最后检查的充值ID（从 localStorage 恢复，避免刷新后重置为0导致重复通知）
+const lastDepositId = ref(parseInt(localStorage.getItem('lastDepositId') || '0'))
 
 // 显示充值通知弹窗
 const showDepositNotification = ref(false)
@@ -994,6 +994,8 @@ const checkNewDeposits = async () => {
         console.log('[Polling] 🔔 检测到新充值!')
         newDepositCount.value += newCount
         lastDepositId.value = lastId
+        // 同步保存到 localStorage，避免页面刷新后重置
+        localStorage.setItem('lastDepositId', String(lastId))
         
         if (deposit) {
           // 总是播放声音（不管是否已确认）
@@ -1410,9 +1412,21 @@ const formatTime = (time) => {
  */
 const initLastDepositId = async () => {
   try {
+    // 如果 localStorage 已有值，说明之前已初始化过，直接使用
+    const savedId = localStorage.getItem('lastDepositId')
+    if (savedId && parseInt(savedId) > 0) {
+      lastDepositId.value = parseInt(savedId)
+      console.log('[Init] 从 localStorage 恢复 lastDepositId:', lastDepositId.value)
+      return
+    }
+    
+    // localStorage 没有值，从服务器获取当前最大ID，避免首次加载时通知所有历史记录
     const res = await request.get('/deposits/latest-id')
     if (res.success && res.data) {
-      lastDepositId.value = res.data.lastId || 0
+      const latestId = res.data.lastId || 0
+      lastDepositId.value = latestId
+      localStorage.setItem('lastDepositId', String(latestId))
+      console.log('[Init] 从服务器获取并保存 lastDepositId:', latestId)
     }
   } catch (error) {
     console.error('获取最后充值ID失败:', error)
