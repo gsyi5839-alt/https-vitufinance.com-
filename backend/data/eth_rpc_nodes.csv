@@ -1,0 +1,18 @@
+url,name,provider,latency_ms,supports_broadcast,tracking_policy,stability,tier,test_date
+https://api.zan.top/eth-mainnet,ZAN,ZAN,135,YES,limited,99.9%,1,2026-03-25
+https://eth.drpc.org,dRPC,dRPC,179,YES,none,99.9%,1,2026-03-25
+https://1rpc.io/eth,1RPC,1RPC,215,YES,none,99.9%,1,2026-03-25
+https://eth.api.onfinality.io/public,OnFinality,OnFinality,211,YES,limited,99%,2,2026-03-25
+https://eth.llamarpc.com,Llama RPC,Llama,335,YES,none,99%,2,2026-03-25
+https://ethereum.public.blockpi.network/v1/rpc/public,BlockPI,BlockPI,334,YES,limited,99%,2,2026-03-25
+https://eth.meowrpc.com,Meow RPC,Meow,358,YES,none,98%,2,2026-03-25
+https://ethereum-public.nodies.app,Nodies,Nodies,372,YES,limited,98%,2,2026-03-25
+https://ethereum-rpc.publicnode.com,PublicNode,PublicNode,374,YES,none,99%,2,2026-03-25
+https://eth-mainnet.public.blastapi.io,Blast API,Blast API,416,YES,limited,98%,3,2026-03-25
+https://rpc.fullsend.to,Fullsend,Fullsend,422,YES,unspecified,97%,3,2026-03-25
+https://eth.merkle.io,Merkle,Merkle,496,YES,none,97%,3,2026-03-25
+https://rpc.eth.gateway.fm,Gateway.fm,Gateway.fm,559,YES,yes,96%,3,2026-03-25
+https://eth.api.pocket.network,Pocket Network,Pocket,595,YES,none,97%,3,2026-03-25
+https://rpc.mevblocker.io,MEV Blocker,MEV Blocker,713,YES,none,96%,3,2026-03-25
+https://rpc.flashbots.net,Flashbots,Flashbots,813,YES,none,95%,4,2026-03-25
+https://0xrpc.io/eth,0xRPC,0xRPC,851,YES,none,95%,4,2026-03-25

@@ -13,15 +13,30 @@
  */
 
 import { query as dbQuery } from '../../db.js';
+import { getPlatformWalletAddressByChain } from '../utils/platformWallet.js';
 
 // ==================== Configuration Constants ====================
 
 // Ethereum mainnet RPC nodes (rotated to avoid rate limiting)
+// Tested on 2026-03-25 - sorted by response time (17 working nodes)
 const ETH_RPC_URLS = [
-  'https://eth.llamarpc.com',
-  'https://ethereum-rpc.publicnode.com',
-  'https://rpc.ankr.com/eth',
-  'https://eth-mainnet.public.blastapi.io'
+  'https://api.zan.top/eth-mainnet',           // 135ms - ZAN, 最快
+  'https://eth.drpc.org',                       // 179ms - dRPC, 最稳定99.9%
+  'https://eth.api.onfinality.io/public',       // 211ms - OnFinality
+  'https://1rpc.io/eth',                        // 215ms - 1RPC, 无追踪
+  'https://ethereum.public.blockpi.network/v1/rpc/public', // 334ms - BlockPI
+  'https://eth.llamarpc.com',                   // 335ms - LlamaRPC
+  'https://eth.meowrpc.com',                    // 358ms - MeowRPC
+  'https://ethereum-public.nodies.app',         // 372ms - Nodies
+  'https://ethereum-rpc.publicnode.com',        // 374ms - PublicNode
+  'https://eth-pokt.nodies.app',                // 416ms - Pocket Network
+  'https://eth.merkle.io',                      // 448ms - Merkle
+  'https://eth-mainnet.public.blastapi.io',     // 489ms - BlastAPI
+  'https://rpc.payload.de',                     // 522ms - Payload
+  'https://rpc.mevblocker.io',                  // 567ms - MEV Blocker
+  'https://rpc.flashbots.net',                  // 713ms - Flashbots, MEV保护
+  'https://cloudflare-eth.com',                 // 813ms - Cloudflare
+  'https://ethereum.publicnode.com',            // 851ms - PublicNode备用
 ];
 
 // Current RPC node index
@@ -44,7 +59,7 @@ const USDT_DECIMALS = 6;
 
 // Scan configuration (conservative to avoid rate limiting on free RPCs)
 const BLOCKS_PER_SCAN = parseInt(process.env.ETH_BLOCKS_PER_SCAN) || 5;
-const SCAN_INTERVAL_MS = parseInt(process.env.ETH_SCAN_INTERVAL_MS) || 120000; // 2 minutes
+const SCAN_INTERVAL_MS = parseInt(process.env.ETH_SCAN_INTERVAL_MS) || 180000; // 3 minutes (increased from 2 to reduce rate limiting)
 const INITIAL_SCAN_BLOCKS = 30;
 
 // Retry configuration
@@ -132,12 +147,15 @@ async function saveLastCheckedBlock(blockNumber) {
 
 /**
  * Load platform wallet address from database
- * NOTE: 实际收款地址直接使用硬编码，不从数据库读取
- * 数据库中的地址仅用于管理后台显示
  */
 async function loadPlatformWallet() {
-  // 直接返回实际收款地址（不从数据库读取）
-  return (process.env.PLATFORM_WALLET_ETH || '0x8DdB1c49D4Bda95c9597960B120C2d6D5dCa23fB').toLowerCase();
+  try {
+    const wallet = await getPlatformWalletAddressByChain(dbQuery, 'ETH');
+    return wallet.toLowerCase();
+  } catch (error) {
+    console.error('[ETH-DepositMonitor] Failed to load platform wallet from DB, using fallback:', error.message);
+    return (process.env.PLATFORM_WALLET_ETH || '0x8a92c73FdE5d0313303989eB269d6d17ffb1ba9d').toLowerCase();
+  }
 }
 
 /**
@@ -191,6 +209,25 @@ async function jsonRpcRequest(method, params, retryCount = 0) {
       timeout: 15000
     });
 
+    // HTTP 429 Rate Limit handling - immediately switch to next node
+    if (response.status === 429) {
+      consecutiveErrors++;
+      console.error(`[ETH-DepositMonitor] ⚠️ HTTP 429 rate limited (node: ${rpcUrl})`);
+      
+      // Immediately switch to next RPC node on 429
+      switchToNextRpc();
+      
+      if (retryCount < MAX_RETRIES) {
+        // Short delay before trying next node
+        const delay = 2000 * (retryCount + 1);
+        console.log(`[ETH-DepositMonitor] ⏳ Trying next node in ${delay/1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
+        await sleep(delay);
+        return jsonRpcRequest(method, params, retryCount + 1);
+      }
+      
+      throw new Error('HTTP 429: Too Many Requests - all retries exhausted');
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -207,7 +244,7 @@ async function jsonRpcRequest(method, params, retryCount = 0) {
   } catch (error) {
     consecutiveErrors++;
     
-    // Rate limit handling
+    // RPC-level rate limit handling (code -32005)
     if (error.code === -32005 || error.message?.includes('limit exceeded')) {
       console.error(`[ETH-DepositMonitor] ⚠️ RPC rate limited (node: ${rpcUrl})`);
       
@@ -412,6 +449,9 @@ export async function scanNewDeposits() {
     
     console.log(`[ETH-DepositMonitor] 🔍 Scanning blocks ${fromBlock} to ${toBlock} (${blockCount} blocks)`);
     
+    // Add delay between RPC calls to reduce rate limiting
+    await sleep(1000);
+    
     // 6. Get Transfer event logs
     const logs = await getUsdtTransferLogs(fromBlock, toBlock);
     
@@ -457,6 +497,9 @@ export async function scanNewDeposits() {
  * Manual scan trigger (for API calls)
  */
 export async function triggerScan() {
+  if (!PLATFORM_WALLET) {
+    PLATFORM_WALLET = await loadPlatformWallet();
+  }
   console.log('[ETH-DepositMonitor] 🔄 Manual scan triggered');
   await scanNewDeposits();
 }
@@ -507,4 +550,3 @@ export function getMonitorStatus() {
     }
   };
 }
-

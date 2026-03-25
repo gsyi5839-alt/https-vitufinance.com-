@@ -11,6 +11,7 @@
  */
 
 import { query as dbQuery } from '../../db.js';
+import { getPlatformWalletAddressByChain } from '../utils/platformWallet.js';
 
 // ==================== 配置常量 ====================
 
@@ -28,8 +29,8 @@ const BSC_RPC_URLS = [
 // 当前使用的RPC节点索引
 let currentRpcIndex = 0;
 
-// 平台钱包地址 - 实际收款地址
-const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0x537BD2D898a64b0214FfefD8910E77FA89c6B2bB').toLowerCase();
+// 平台钱包地址（启动时从数据库动态加载）
+let PLATFORM_WALLET = '';
 
 // USDT合约地址 (BSC主网)
 const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'.toLowerCase();
@@ -89,6 +90,19 @@ function switchToNextRpc() {
  */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 从数据库加载 BSC 平台钱包地址（与前端 /api/platform/wallet 保持一致）
+ */
+async function loadPlatformWallet() {
+  try {
+    const wallet = await getPlatformWalletAddressByChain(dbQuery, 'BSC');
+    return wallet.toLowerCase();
+  } catch (error) {
+    console.error('[DepositMonitor] 加载平台钱包失败，使用回退地址:', error.message);
+    return (process.env.PLATFORM_WALLET_ADDRESS || '0x0290df8A512Eff68d0B0a3ECe1E3F6aAB49d79D4').toLowerCase();
+  }
 }
 
 // ==================== 区块号持久化函数 ====================
@@ -474,6 +488,9 @@ export async function scanNewDeposits() {
  * 手动触发扫描 (供API调用)
  */
 export async function triggerScan() {
+  if (!PLATFORM_WALLET) {
+    PLATFORM_WALLET = await loadPlatformWallet();
+  }
   console.log('[DepositMonitor] 🔄 手动触发扫描');
   await scanNewDeposits();
 }
@@ -482,24 +499,30 @@ export async function triggerScan() {
  * 启动充值监控定时任务
  */
 export function startDepositMonitor() {
-  console.log('[DepositMonitor] 🚀 启动充值监控服务');
-  console.log(`[DepositMonitor] ⚙️  配置: 每${SCAN_INTERVAL_MS/1000}秒扫描${BLOCKS_PER_SCAN}个区块`);
-  console.log(`[DepositMonitor] 🌐 RPC节点: ${BSC_RPC_URLS.length}个备用节点`);
-  console.log(`[DepositMonitor] 🔄 自动重置: 落后>${MAX_BLOCK_LAG}区块 或 连续${MAX_HISTORY_PRUNED_ERRORS}次历史数据错误时自动重置`);
-  console.log(`[DepositMonitor] 💰 平台钱包: ${PLATFORM_WALLET}`);
-  console.log(`[DepositMonitor] 💵 最低充值: ${MIN_DEPOSIT_AMOUNT} USDT`);
-  
-  // 立即执行一次
-  scanNewDeposits().catch(err => {
-    console.error('[DepositMonitor] ❌ 首次扫描失败:', err.message);
-  });
-  
-  // 定时执行
-  setInterval(() => {
+  (async () => {
+    PLATFORM_WALLET = await loadPlatformWallet();
+
+    console.log('[DepositMonitor] 🚀 启动充值监控服务');
+    console.log(`[DepositMonitor] ⚙️  配置: 每${SCAN_INTERVAL_MS/1000}秒扫描${BLOCKS_PER_SCAN}个区块`);
+    console.log(`[DepositMonitor] 🌐 RPC节点: ${BSC_RPC_URLS.length}个备用节点`);
+    console.log(`[DepositMonitor] 🔄 自动重置: 落后>${MAX_BLOCK_LAG}区块 或 连续${MAX_HISTORY_PRUNED_ERRORS}次历史数据错误时自动重置`);
+    console.log(`[DepositMonitor] 💰 平台钱包: ${PLATFORM_WALLET}`);
+    console.log(`[DepositMonitor] 💵 最低充值: ${MIN_DEPOSIT_AMOUNT} USDT`);
+    
+    // 立即执行一次
     scanNewDeposits().catch(err => {
-      console.error('[DepositMonitor] ❌ 定时扫描失败:', err.message);
+      console.error('[DepositMonitor] ❌ 首次扫描失败:', err.message);
     });
-  }, SCAN_INTERVAL_MS);
+    
+    // 定时执行
+    setInterval(() => {
+      scanNewDeposits().catch(err => {
+        console.error('[DepositMonitor] ❌ 定时扫描失败:', err.message);
+      });
+    }, SCAN_INTERVAL_MS);
+  })().catch(err => {
+    console.error('[DepositMonitor] ❌ 启动失败:', err.message);
+  });
 }
 
 /**
@@ -519,4 +542,3 @@ export function getMonitorStatus() {
     }
   };
 }
-

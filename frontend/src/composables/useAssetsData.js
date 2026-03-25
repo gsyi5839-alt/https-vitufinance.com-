@@ -224,7 +224,7 @@ export function useAssetsData() {
     
     try {
       const data = await cachedFetch(
-        `/api/deposit/records?wallet_address=${walletStore.walletAddress}`,
+        `/api/deposit/history?wallet_address=${walletStore.walletAddress}`,
         30000
       )
       
