@@ -3162,3 +3162,76 @@
 [2026-03-26 02:00:07] 3. Generating file integrity hashes...
 [2026-03-26 02:00:07]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260326_020001.sha256
 [2026-03-26 02:00:07] 4. Checking for git changes...
+[main a43b91c4] Auto-backup: 20260326_020001
+ 59 files changed, 3794 insertions(+), 62 deletions(-)
+ create mode 100644 admin/dist/assets/css/Layout-BF-Rkd-B.css
+ delete mode 100644 admin/dist/assets/css/Layout-BUBB_L9G.css
+ rename admin/dist/assets/js/{Announcements-C7hbIluc.js => Announcements-CP8ED39q.js} (97%)
+ rename admin/dist/assets/js/{Background3D-Zgsuy4yo.js => Background3D-iC9iYYpK.js} (98%)
+ rename admin/dist/assets/js/{Dashboard-BQi1_dfK.js => Dashboard-B8y_rHg0.js} (99%)
+ rename admin/dist/assets/js/{DataCleanup-xp013qjd.js => DataCleanup-rCWigiQq.js} (99%)
+ rename admin/dist/assets/js/{Deposits-C3AM2cm_.js => Deposits-DzIpsEDp.js} (96%)
+ rename admin/dist/assets/js/{Documents--0X5sF9I.js => Documents-DVvPTm-1.js} (98%)
+ rename admin/dist/assets/js/{ErrorLogs-DIHrgvDh.js => ErrorLogs-UZSBLBHr.js} (98%)
+ rename admin/dist/assets/js/{FakeAccounts-BEvLLhl-.js => FakeAccounts-BxaCCjw6.js} (98%)
+ rename admin/dist/assets/js/{Follows-yGPms75J.js => Follows-D1DxSoyO.js} (98%)
+ rename admin/dist/assets/js/{IPBlacklist-C51WtEeO.js => IPBlacklist-Dy47_G-U.js} (99%)
+ rename admin/dist/assets/js/{InviteStats-P6TnCJJa.js => InviteStats-DE7JLqex.js} (99%)
+ delete mode 100644 admin/dist/assets/js/Layout-Brxzy7IV.js
+ create mode 100644 admin/dist/assets/js/Layout-oLiT9_Ck.js
+ rename admin/dist/assets/js/{Login-LH7P1_uU.js => Login-Dd5OS-zq.js} (97%)
+ rename admin/dist/assets/js/{Logs-Dg-q2K5O.js => Logs-JFlEPDp5.js} (98%)
+ rename admin/dist/assets/js/{LuckyWheel-HRy0sC2W.js => LuckyWheel-CVLEXunt.js} (99%)
+ rename admin/dist/assets/js/{Maintenance-B7P1KpJG.js => Maintenance-iR9Wih6u.js} (98%)
+ rename admin/dist/assets/js/{Pledges-CzXbUNPn.js => Pledges-7tJI5LA0.js} (98%)
+ rename admin/dist/assets/js/{Referrals-I-3VgxTd.js => Referrals-Bi0KEGZs.js} (99%)
+ rename admin/dist/assets/js/{RobotsActive-B-KIPfW-.js => RobotsActive-BucxpGYS.js} (99%)
+ rename admin/dist/assets/js/{RobotsExpired-CzBDNASb.js => RobotsExpired-DiEhIEtR.js} (99%)
+ rename admin/dist/assets/js/{Settings-BLIerdS1.js => Settings-e1iU-IMP.js} (99%)
+ rename admin/dist/assets/js/{TeamDividend-C3uBqQ7q.js => TeamDividend-D0nppwl1.js} (99%)
+ rename admin/dist/assets/js/{TeamManagement-b1T-W2c9.js => TeamManagement-zAxFVjPf.js} (99%)
+ rename admin/dist/assets/js/{Transactions-BPLhYBdu.js => Transactions-CSZiAEZx.js} (98%)
+ rename admin/dist/assets/js/{Users-kjQ1aEC6.js => Users-Bz97DMiV.js} (99%)
+ rename admin/dist/assets/js/{Withdrawals-CfNmcKlS.js => Withdrawals-DGcxwx6D.js} (98%)
+ rename admin/dist/assets/js/{index-CCj7ctyJ.js => index-DFacRTKc.js} (97%)
+ rename admin/dist/assets/js/{index-BArJCJm5.js => index-DpXuYyRZ.js} (75%)
+ create mode 100644 backend/check_user_data.mjs
+ create mode 100644 backend/check_user_data2.mjs
+ create mode 100644 backend/data/eth_rpc_nodes.csv
+ create mode 100644 backend/diagnose_api_endpoints.cjs
+ create mode 100644 backend/find_user_table.cjs
+ create mode 100644 backend/list_db_tables.cjs
+ create mode 100644 backend/list_tables.mjs
+ create mode 100644 backend/query_two_addr.cjs
+ create mode 100644 backend/query_two_addr.js
+ create mode 100644 backend/scripts/check_two_addresses.cjs
+ rename backups/critical/{critical_20260317_020001.tar.gz => critical_20260326_020001.tar.gz} (100%)
+ rename backups/critical/{hashes_20260317_020001.sha256 => hashes_20260326_020001.sha256} (100%)
+ rename backups/daily/{db_20260317_020001.sql.gz => db_20260326_020001.sql.gz} (65%)
+ delete mode 100644 backups/database/xie080886_2026-03-16.sql.gz
+ create mode 100644 docs/BALANCE_DISPLAY_INVESTIGATION_20260325.md
+ create mode 100644 docs/ETH_RPC_NODES_REPORT_20260325.md
+ create mode 100644 docs/ETH_RPC_QUICK_REFERENCE.md
+ create mode 100644 docs/INVESTIGATION_SUMMARY.txt
+ create mode 100644 docs/README_ETH_RPC.md
+ create mode 100755 scripts/broadcast-eth-transaction.js
+[2026-03-26 02:00:09]    Git commit created
+[2026-03-26 02:00:09] 5. Cleaning up old backups...
+[2026-03-26 02:00:09]    Old backups cleaned (keeping last 7 days)
+[2026-03-26 02:00:09] ==========================================
+[2026-03-26 02:00:09] Backup completed successfully!
+[2026-03-26 02:00:09] ==========================================
+   Critical files: 112K
+   Database: 21M
+[2026-03-26 02:00:09]    Total backup size: 228M
+[2026-03-26 02:00:09] ==========================================
+[2026-03-27 02:00:01] ==========================================
+[2026-03-27 02:00:01] Starting backup: vitufinance_backup_20260327_020001
+[2026-03-27 02:00:01] ==========================================
+[2026-03-27 02:00:01] 1. Backing up critical source files...
+[2026-03-27 02:00:01]    Critical files backed up: /www/wwwroot/vitufinance.com/backups/critical/critical_20260327_020001.tar.gz
+[2026-03-27 02:00:01] 2. Backing up database...
+[2026-03-27 02:00:06]    Database backed up: /www/wwwroot/vitufinance.com/backups/daily/db_20260327_020001.sql.gz
+[2026-03-27 02:00:06] 3. Generating file integrity hashes...
+[2026-03-27 02:00:07]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260327_020001.sha256
+[2026-03-27 02:00:07] 4. Checking for git changes...
