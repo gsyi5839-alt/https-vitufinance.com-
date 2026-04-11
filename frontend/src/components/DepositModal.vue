@@ -5,70 +5,73 @@
       <!-- Title -->
       <h2 class="modal-title">{{ t('depositModal.title') }}</h2>
       
-      <!-- Chain Selection Area -->
-      <div class="chain-select-section">
-        <label class="input-label">{{ t('depositModal.selectNetwork') }}</label>
-        <div class="chain-buttons">
-          <!-- BSC Selection Button -->
+      <!-- Scrollable Content Area -->
+      <div class="modal-content">
+        <!-- Chain Selection Area -->
+        <div class="chain-select-section">
+          <label class="input-label">{{ t('depositModal.selectNetwork') }}</label>
+          <div class="chain-buttons">
+            <!-- BSC Selection Button -->
+            <button 
+              class="chain-btn"
+              :class="{ selected: selectedChain === 'BSC' }"
+              @click="selectedChain = 'BSC'"
+            >
+              <img src="/static/bsc-chain.png" alt="BSC" class="chain-logo-img" />
+              <div class="chain-info">
+                <span class="chain-name">BSC</span>
+                <span class="chain-desc">{{ t('depositModal.lowGasFee') }}</span>
+              </div>
+            </button>
+            
+            <!-- ETH Selection Button -->
+            <button 
+              class="chain-btn"
+              :class="{ selected: selectedChain === 'ETH' }"
+              @click="selectedChain = 'ETH'"
+            >
+              <img src="/static/eth-chain.png" alt="ETH" class="chain-logo-img" />
+              <div class="chain-info">
+                <span class="chain-name">Ethereum</span>
+                <span class="chain-desc">{{ t('depositModal.mainnet') }}</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="input-section">
+          <label class="input-label">{{ t('depositModal.enterAmount') }}</label>
+          <div class="amount-input-wrapper">
+            <input 
+              v-model="depositAmount" 
+              type="number" 
+              min="20"
+              step="1"
+              placeholder="0"
+              class="amount-input"
+            />
+          </div>
+        </div>
+        
+        <!-- Quick Amount Buttons -->
+        <div class="quick-amounts">
           <button 
-            class="chain-btn"
-            :class="{ selected: selectedChain === 'BSC' }"
-            @click="selectedChain = 'BSC'"
+            v-for="amount in quickAmounts" 
+            :key="amount"
+            class="quick-amount-btn"
+            :class="{ selected: depositAmount === amount.toString() }"
+            @click="depositAmount = amount.toString()"
           >
-            <img src="/static/bsc-chain.png" alt="BSC" class="chain-logo-img" />
-            <div class="chain-info">
-              <span class="chain-name">BSC</span>
-              <span class="chain-desc">{{ t('depositModal.lowGasFee') }}</span>
-            </div>
-          </button>
-          
-          <!-- ETH Selection Button -->
-          <button 
-            class="chain-btn"
-            :class="{ selected: selectedChain === 'ETH' }"
-            @click="selectedChain = 'ETH'"
-          >
-            <img src="/static/eth-chain.png" alt="ETH" class="chain-logo-img" />
-            <div class="chain-info">
-              <span class="chain-name">Ethereum</span>
-              <span class="chain-desc">{{ t('depositModal.mainnet') }}</span>
-            </div>
+            {{ amount }}
           </button>
         </div>
-      </div>
-      
-      <!-- Input Area -->
-      <div class="input-section">
-        <label class="input-label">{{ t('depositModal.enterAmount') }}</label>
-        <div class="amount-input-wrapper">
-          <input 
-            v-model="depositAmount" 
-            type="number" 
-            min="20"
-            step="1"
-            placeholder="0"
-            class="amount-input"
-          />
-        </div>
-      </div>
-      
-      <!-- Quick Amount Buttons -->
-      <div class="quick-amounts">
-        <button 
-          v-for="amount in quickAmounts" 
-          :key="amount"
-          class="quick-amount-btn"
-          :class="{ selected: depositAmount === amount.toString() }"
-          @click="depositAmount = amount.toString()"
-        >
-          {{ amount }}
-        </button>
-      </div>
-      
-      <!-- Tip -->
-      <p class="tip-text">{{ t('depositModal.minDepositTip') }}</p>
+        
+        <!-- Tip -->
+        <p class="tip-text">{{ t('depositModal.minDepositTip') }}</p>
+      </div><!-- /.modal-content -->
 
-      <!-- Button Area -->
+      <!-- Button Area (Fixed at bottom) -->
       <div class="button-group">
         <button class="btn-cancel" @click="closeModal">{{ t('common.cancel') }}</button>
         <button 
@@ -447,7 +450,7 @@ const submitDepositRecord = async (transactionHash) => {
 /* 弹窗容器 - 增加高度以容纳链选择 */
 .deposit-modal {
   width: 302px;
-  height: 420px;  /* 增加高度确保按钮不超出 */
+  max-height: 80vh;  /* 最大高度为视口80%，适配小屏 */
   /* 移除背景图片，使用渐变背景 */
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -457,7 +460,17 @@ const submitDepositRecord = async (transactionHash) => {
   display: flex;
   flex-direction: column;
   animation: scaleIn 0.2s ease-out;
-  overflow: hidden;  /* 防止内容溢出 */
+  overflow: hidden;  /* 容器本身不滚动 */
+}
+
+/* 可滚动内容区域 */
+.modal-content {
+  flex: 1;
+  overflow-y: auto;  /* 内容区独立滚动 */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;  /* iOS平滑滚动 */
+  margin: 0 -4px;  /* 补偿滚动条空间 */
+  padding: 0 4px;
 }
 
 @keyframes scaleIn {
@@ -630,13 +643,13 @@ const submitDepositRecord = async (transactionHash) => {
   flex-shrink: 0;
 }
 
-/* 按钮区域 */
+/* 按钮区域 - 固定在底部 */
 .button-group {
   display: flex;
   gap: 16px;
-  margin-top: auto;
   flex-shrink: 0;
-  padding-bottom: 4px;  /* 确保按钮不贴边 */
+  padding-top: 12px;  /* 与内容区分隔 */
+  margin-top: 0;  /* 移除 auto，由内容区控制 */
 }
 
 .btn-cancel {
@@ -686,12 +699,22 @@ const submitDepositRecord = async (transactionHash) => {
   cursor: not-allowed;
 }
 
-/* 移动端适配 */
+/* 移动端适配 - 修复滚动问题 */
+@media (max-width: 380px) {
+  .deposit-modal {
+    width: 92vw;  /* 使用视口宽度百分比 */
+    max-width: 340px;
+    max-height: 85vh;
+    padding: 18px 16px 20px 16px;
+  }
+}
+
 @media (max-width: 340px) {
   .deposit-modal {
-    width: 290px;
-    height: 400px;
-    padding: 18px 16px 20px 16px;
+    width: 94vw;
+    max-width: 320px;
+    max-height: 90vh;  /* 小屏设备允许更多空间 */
+    padding: 16px 14px 18px 14px;
   }
 
   .modal-title {
@@ -718,6 +741,63 @@ const submitDepositRecord = async (transactionHash) => {
   .btn-sure {
     height: 40px;
     font-size: 15px;
+  }
+  
+  .button-group {
+    padding-top: 10px;
+    gap: 12px;
+  }
+}
+
+/* 超小屏设备适配 (如 Redmi 9 系列) */
+@media (max-width: 320px) {
+  .deposit-modal {
+    width: 96vw;
+    max-height: 92vh;
+    padding: 14px 12px 16px 12px;
+  }
+  
+  .modal-content {
+    margin: 0 -2px;
+    padding: 0 2px;
+  }
+  
+  .chain-buttons {
+    gap: 6px;
+  }
+  
+  .chain-btn {
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  
+  .chain-logo-img {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .quick-amounts {
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  
+  .quick-amount-btn {
+    font-size: 11px;
+    padding: 6px 2px;
+  }
+  
+  .amount-input {
+    font-size: 18px;
+    padding: 10px 12px;
+  }
+  
+  .button-group {
+    padding-top: 8px;
+    gap: 10px;
+  }
+  
+  .tip-text {
+    margin-bottom: 8px;
   }
 }
 </style>
