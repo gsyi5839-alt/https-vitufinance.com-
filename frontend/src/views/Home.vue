@@ -269,6 +269,29 @@ ${t('signatureAuthPopup.signNote') || 'This signature is only used to verify wal
   })
 }
 
+const getSignatureErrorMessage = (error) => {
+  const rawMessage = String(error?.message || error?.data?.message || error || '').trim()
+  const lowerMessage = rawMessage.toLowerCase()
+
+  if (error?.code === 4001) {
+    return '您取消了签名请求，请重新签名'
+  }
+
+  if (error?.code === -32002) {
+    return '钱包请求处理中，请回到钱包完成操作；如没有弹窗，请关闭当前弹窗后重试'
+  }
+
+  if (lowerMessage.includes('operation timed out') || lowerMessage.includes('timeout')) {
+    return '钱包响应超时，请确认 TokenPocket 已解锁，然后重新点击签名认证'
+  }
+
+  if (lowerMessage.includes('password') && lowerMessage.includes('incorrect')) {
+    return '钱包密码不正确，请重试'
+  }
+
+  return rawMessage || '签名失败，请重试'
+}
+
 /**
  * Show biometric setup tip
  */
@@ -321,14 +344,7 @@ const handleSignatureConfirm = async () => {
     
   } catch (error) {
     console.error('[Signature] Error:', error)
-    
-    if (error.code === 4001) {
-      authError.value = '您取消了签名请求，请重新签名'
-    } else if (error.code === -32002) {
-      authError.value = '请在钱包中完成签名操作'
-    } else {
-      authError.value = error.message || '签名失败，请重试'
-    }
+    authError.value = getSignatureErrorMessage(error)
     
     ElMessage.error(authError.value)
   } finally {
