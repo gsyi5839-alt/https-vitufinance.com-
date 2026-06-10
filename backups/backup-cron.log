@@ -5667,3 +5667,48 @@
 [2026-06-10 02:00:10] 3. Generating file integrity hashes...
 [2026-06-10 02:00:10]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260610_020001.sha256
 [2026-06-10 02:00:10] 4. Checking for git changes...
+[main 6304d76b] Auto-backup: 20260610_020001
+ 7 files changed, 1771 insertions(+)
+ rename backups/critical/{critical_20260601_020001.tar.gz => critical_20260610_020001.tar.gz} (100%)
+ rename backups/critical/{hashes_20260601_020001.sha256 => hashes_20260610_020001.sha256} (100%)
+ rename backups/daily/{db_20260601_020001.sql.gz => db_20260610_020001.sql.gz} (75%)
+[2026-06-10 02:00:12]    Git commit created
+[2026-06-10 02:00:12] 5. Cleaning up old backups...
+[2026-06-10 02:00:12]    Old backups cleaned (keeping last 7 days)
+[2026-06-10 02:00:12] ==========================================
+[2026-06-10 02:00:12] Backup completed successfully!
+[2026-06-10 02:00:12] ==========================================
+   Critical files: 112K
+   Database: 37M
+[2026-06-10 02:00:12]    Total backup size: 443M
+[2026-06-10 02:00:12] ==========================================
+[2026-06-10 03:00:01] [INFO] ========== Starting database backup ==========
+[2026-06-10 03:00:01] [INFO] Backup time: 2026-06-10_03-00-01
+[2026-06-10 03:00:01] [INFO] Project: /www/wwwroot/vitufinance.com
+[2026-06-10 03:00:01] [INFO] Database: xie080886 @ 127.0.0.1:3306
+[2026-06-10 03:00:01] [INFO] Creating database backup...
+[2026-06-10 03:00:05] [INFO] Backup created: xie080886_2026-06-10.sql (220M)
+[2026-06-10 03:00:05] [INFO] Compressing backup...
+[2026-06-10 03:00:36] [INFO] Backup compressed: xie080886_2026-06-10.sql.gz (36M)
+[2026-06-10 03:00:36] [INFO] Cleaning up old backups...
+[2026-06-10 03:00:36] [INFO] Total backups retained: 3
+[2026-06-10 03:00:36] [INFO] Pushing backup to Git repository...
+[2026-06-10 03:02:08] [INFO] Successfully pushed to 'main' branch
+[2026-06-10 03:02:08] [INFO] Git push completed successfully
+[2026-06-10 03:02:08] [INFO] =========================================
+[2026-06-10 03:02:08] [INFO] Backup Summary:
+[2026-06-10 03:02:08] [INFO]   File: xie080886_2026-06-10.sql.gz
+[2026-06-10 03:02:08] [INFO]   Size: 36M
+[2026-06-10 03:02:08] [INFO]   Location: /www/wwwroot/vitufinance.com/backups/database
+[2026-06-10 03:02:08] [INFO] ========== Backup completed successfully ==========
+[2026-06-10 03:02:08] [INFO] 
+[2026-06-11 02:00:01] ==========================================
+[2026-06-11 02:00:01] Starting backup: vitufinance_backup_20260611_020001
+[2026-06-11 02:00:01] ==========================================
+[2026-06-11 02:00:01] 1. Backing up critical source files...
+[2026-06-11 02:00:01]    Critical files backed up: /www/wwwroot/vitufinance.com/backups/critical/critical_20260611_020001.tar.gz
+[2026-06-11 02:00:01] 2. Backing up database...
+[2026-06-11 02:00:11]    Database backed up: /www/wwwroot/vitufinance.com/backups/daily/db_20260611_020001.sql.gz
+[2026-06-11 02:00:11] 3. Generating file integrity hashes...
+[2026-06-11 02:00:11]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260611_020001.sha256
+[2026-06-11 02:00:11] 4. Checking for git changes...
