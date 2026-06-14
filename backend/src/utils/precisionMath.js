@@ -8,19 +8,34 @@
  *          0.1 + 0.2 = 0.3 (Decimal.js)
  */
 
-import Decimal from 'decimal.js';
+import { Decimal } from './precisionDecimal.js';
+import {
+    REWARD_RATES,
+    calculateLevelReward,
+    calculateAllLevelRewards
+} from './precisionReferralRewards.js';
+import {
+    BROKER_LEVELS,
+    calculateBrokerLevel,
+    calculateDailyBonus,
+    calculateMonthlyBonus,
+    getDailyWldLimit
+} from './precisionBrokerRewards.js';
 
 // ============================================================================
 // Decimal Configuration - 设置精度
 // ============================================================================
 
-// Set precision to 20 significant digits (enough for financial calculations)
-Decimal.set({
-    precision: 20,          // Maximum significant digits
-    rounding: Decimal.ROUND_DOWN,  // Round down (conservative for financial)
-    toExpNeg: -9,           // Don't use exponential notation above this
-    toExpPos: 21            // Don't use exponential notation below this
-});
+export {
+    REWARD_RATES,
+    calculateLevelReward,
+    calculateAllLevelRewards,
+    BROKER_LEVELS,
+    calculateBrokerLevel,
+    calculateDailyBonus,
+    calculateMonthlyBonus,
+    getDailyWldLimit
+};
 
 // ============================================================================
 // Core Arithmetic Functions - 核心运算函数
@@ -206,289 +221,6 @@ export function calculateTotalReturn(principal, dailyRate, days) {
 }
 
 // ============================================================================
-// Referral Reward Calculation - 推荐奖励计算
-// ============================================================================
-
-// Referral reward rates configuration
-export const REWARD_RATES = {
-    // CEX/Grid/High robots - Based on quantify PROFIT (8 levels)
-    // 1级30%, 2级10%, 3级5%, 4-8级1%×5 = Total 50%
-    CEX: [0.30, 0.10, 0.05, 0.01, 0.01, 0.01, 0.01, 0.01],
-    
-    // DEX robots - Based on LAUNCH AMOUNT (3 levels)
-    // 1级5%, 2级3%, 3级2% = Total 10%
-    DEX_LAUNCH: [0.05, 0.03, 0.02],
-    
-    // DEX robots - Based on maturity PROFIT (8 levels, same as CEX)
-    // Distributed at maturity
-    DEX_PROFIT: [0.30, 0.10, 0.05, 0.01, 0.01, 0.01, 0.01, 0.01]
-};
-
-/**
- * Calculate single level referral reward - 计算单级推荐奖励
- * Formula: Reward = Amount × Rate
- * 
- * @param {number|string} amount - Base amount (profit or launch amount)
- * @param {number} level - Referral level (1-8)
- * @param {string} type - Reward type: 'CEX', 'DEX_LAUNCH', 'DEX_PROFIT'
- * @returns {object} { reward: string, rate: number, formula: string }
- */
-export function calculateLevelReward(amount, level, type = 'CEX') {
-    const rates = REWARD_RATES[type] || REWARD_RATES.CEX;
-    
-    if (level < 1 || level > rates.length) {
-        return { reward: '0.0000', rate: 0, formula: 'Invalid level' };
-    }
-    
-    const rate = rates[level - 1];
-    const amountDec = new Decimal(amount || 0);
-    const reward = amountDec.times(new Decimal(rate));
-    
-    return {
-        reward: reward.toFixed(4),
-        rate: rate,
-        ratePercent: new Decimal(rate).times(100).toFixed(1) + '%',
-        formula: `${amount} × ${rate} = ${reward.toFixed(4)}`
-    };
-}
-
-/**
- * Calculate all levels referral rewards - 计算所有级别推荐奖励
- * 
- * @param {number|string} amount - Base amount
- * @param {string} type - Reward type: 'CEX', 'DEX_LAUNCH', 'DEX_PROFIT'
- * @returns {object} Detailed reward breakdown
- */
-export function calculateAllLevelRewards(amount, type = 'CEX') {
-    const rates = REWARD_RATES[type] || REWARD_RATES.CEX;
-    const rewards = [];
-    let totalReward = new Decimal(0);
-    
-    for (let level = 1; level <= rates.length; level++) {
-        const result = calculateLevelReward(amount, level, type);
-        rewards.push({
-            level,
-            ...result
-        });
-        totalReward = totalReward.plus(new Decimal(result.reward));
-    }
-    
-    const amountDec = new Decimal(amount || 0);
-    const totalRate = rates.reduce((sum, r) => sum + r, 0);
-    
-    return {
-        type,
-        baseAmount: amount,
-        totalLevels: rates.length,
-        rewards,
-        totalReward: totalReward.toFixed(4),
-        totalRatePercent: new Decimal(totalRate).times(100).toFixed(1) + '%',
-        netAmount: amountDec.minus(totalReward).toFixed(4)
-    };
-}
-
-// ============================================================================
-// Broker Level Rewards - 经纪人等级奖励
-// ============================================================================
-
-// Broker level configuration
-export const BROKER_LEVELS = {
-    0: { // No level
-        name: 'Regular User',
-        directRequired: 0,
-        directMinAmount: 0,
-        teamLevelRequired: 0,
-        teamLevelCount: 0,
-        teamVolume: 0,
-        dailyBonus: 0,
-        monthlyBonus: 0,
-        dailyWldRedemption: 0
-    },
-    1: {
-        name: 'LV1 Broker',
-        directRequired: 5,       // 5 direct referrals
-        directMinAmount: 20,     // Each referral >= 20 USDT
-        teamLevelRequired: 0,    // No subordinate level required
-        teamLevelCount: 0,
-        teamVolume: 1000,        // 1,000 USDT team volume
-        dailyBonus: 5,           // 5 USDT daily
-        monthlyBonus: 150,       // 150 USDT monthly
-        dailyWldRedemption: 1    // 1 WLD per day extra redemption
-    },
-    2: {
-        name: 'LV2 Broker',
-        directRequired: 10,
-        directMinAmount: 100,
-        teamLevelRequired: 1,    // Need LV1 subordinates
-        teamLevelCount: 2,       // 2 LV1 subordinates
-        teamVolume: 5000,
-        dailyBonus: 15,
-        monthlyBonus: 450,
-        dailyWldRedemption: 2
-    },
-    3: {
-        name: 'LV3 Broker',
-        directRequired: 20,
-        directMinAmount: 100,
-        teamLevelRequired: 2,
-        teamLevelCount: 2,
-        teamVolume: 20000,
-        dailyBonus: 60,
-        monthlyBonus: 1800,
-        dailyWldRedemption: 3
-    },
-    4: {
-        name: 'LV4 Broker',
-        directRequired: 30,
-        directMinAmount: 100,
-        teamLevelRequired: 3,
-        teamLevelCount: 2,
-        teamVolume: 80000,
-        dailyBonus: 300,
-        monthlyBonus: 9000,
-        dailyWldRedemption: 5
-    },
-    5: {
-        name: 'LV5 Broker',
-        directRequired: 50,
-        directMinAmount: 100,
-        teamLevelRequired: 4,
-        teamLevelCount: 2,
-        teamVolume: 200000,
-        dailyBonus: 1000,
-        monthlyBonus: 30000,
-        dailyWldRedemption: 10
-    }
-};
-
-/**
- * Calculate broker level qualification - 计算经纪人等级资格
- * 
- * @param {object} userData - User data containing:
- *   - directReferrals: Array of { walletAddress, totalInvestment, level }
- *   - teamVolume: Total team investment volume
- *   - subordinateLevels: Count of subordinates at each level
- * @returns {object} Level qualification result
- */
-export function calculateBrokerLevel(userData) {
-    const {
-        directReferrals = [],
-        teamVolume = 0,
-        subordinateLevels = {},
-        teamMembers = 0
-    } = userData;
-
-    // Team member minimum requirements (customer rule, people-only minimal structure).
-    // Hard gate for broker level qualification:
-    // LV1=5, LV2=20, LV3=60, LV4=150, LV5=350 (downline members only).
-    const MIN_TEAM_MEMBERS_BY_LEVEL = { 1: 5, 2: 20, 3: 60, 4: 150, 5: 350 };
-    
-    let qualifiedLevel = 0;
-    const qualificationDetails = [];
-    
-    for (let level = 5; level >= 1; level--) {
-        const config = BROKER_LEVELS[level];
-
-        // Check team members count gate first.
-        const teamMembersOk = new Decimal(teamMembers || 0).gte(new Decimal(MIN_TEAM_MEMBERS_BY_LEVEL[level] || 0));
-        
-        // Check direct referrals count with minimum amount
-        const qualifiedDirects = directReferrals.filter(ref => 
-            new Decimal(ref.totalInvestment || 0).gte(new Decimal(config.directMinAmount))
-        );
-        const directOk = qualifiedDirects.length >= config.directRequired;
-        
-        // Check team volume
-        const volumeOk = new Decimal(teamVolume).gte(new Decimal(config.teamVolume));
-        
-        // Check subordinate levels
-        const subLevelOk = config.teamLevelRequired === 0 || 
-            (subordinateLevels[config.teamLevelRequired] || 0) >= config.teamLevelCount;
-        
-        const qualified = teamMembersOk && directOk && volumeOk && subLevelOk;
-        
-        qualificationDetails.push({
-            level,
-            name: config.name,
-            qualified,
-            checks: {
-                teamMembers: {
-                    required: MIN_TEAM_MEMBERS_BY_LEVEL[level] || 0,
-                    actual: teamMembers,
-                    passed: teamMembersOk
-                },
-                directReferrals: {
-                    required: config.directRequired,
-                    actual: qualifiedDirects.length,
-                    minAmount: config.directMinAmount,
-                    passed: directOk
-                },
-                teamVolume: {
-                    required: config.teamVolume,
-                    actual: teamVolume,
-                    passed: volumeOk
-                },
-                subordinateLevels: {
-                    requiredLevel: config.teamLevelRequired,
-                    requiredCount: config.teamLevelCount,
-                    actualCount: subordinateLevels[config.teamLevelRequired] || 0,
-                    passed: subLevelOk
-                }
-            },
-            rewards: qualified ? {
-                dailyBonus: config.dailyBonus,
-                monthlyBonus: config.monthlyBonus,
-                dailyWldRedemption: config.dailyWldRedemption
-            } : null
-        });
-        
-        if (qualified && qualifiedLevel === 0) {
-            qualifiedLevel = level;
-        }
-    }
-    
-    return {
-        currentLevel: qualifiedLevel,
-        levelName: BROKER_LEVELS[qualifiedLevel].name,
-        rewards: BROKER_LEVELS[qualifiedLevel],
-        details: qualificationDetails.reverse() // Sort from LV1 to LV5
-    };
-}
-
-/**
- * Calculate broker daily bonus - 计算经纪人每日分红
- * 
- * @param {number} level - Broker level (1-5)
- * @returns {string} Daily bonus amount
- */
-export function calculateDailyBonus(level) {
-    const config = BROKER_LEVELS[level] || BROKER_LEVELS[0];
-    return new Decimal(config.dailyBonus || 0).toFixed(4);
-}
-
-/**
- * Calculate broker monthly bonus - 计算经纪人每月薪资
- * 
- * @param {number} level - Broker level (1-5)
- * @returns {string} Monthly bonus amount
- */
-export function calculateMonthlyBonus(level) {
-    const config = BROKER_LEVELS[level] || BROKER_LEVELS[0];
-    return new Decimal(config.monthlyBonus || 0).toFixed(4);
-}
-
-/**
- * Get daily WLD redemption limit - 获取每日WLD闪兑限额
- * 
- * @param {number} level - Broker level (1-5)
- * @returns {number} Daily WLD redemption limit
- */
-export function getDailyWldLimit(level) {
-    const config = BROKER_LEVELS[level] || BROKER_LEVELS[0];
-    return config.dailyWldRedemption || 0;
-}
-
-// ============================================================================
 // Utility Functions - 工具函数
 // ============================================================================
 
@@ -590,4 +322,3 @@ export default {
     isValidAmount,
     sumAmounts
 };
-

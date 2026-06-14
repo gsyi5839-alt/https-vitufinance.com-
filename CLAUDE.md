@@ -122,3 +122,24 @@ Backend requires `.env` file (see `backend/env.example`):
 - Admin uses JWT auth (not CSRF-based like frontend); both systems coexist on the same backend
 - Frontend build: `drop_console: false` (intentional for debugging); admin build: `drop_console: true`
 - Blockchain: BSC (primary) + Ethereum; RPC endpoints managed via `scripts/fetch-publicnode-endpoints.mjs`
+
+## Development Conventions
+
+These are enforced by `.cursor/rules/xx.mdc` and `AGENTS.md` — follow them when making changes:
+
+- **File size: 300–500 lines per file (hard limit 500).** A source file crossing ~300 lines must be put on a split plan; the line-count check **fails at 500 lines** and code must be split into modules before merging/deploying. When a file would grow past this, split by business domain instead of appending: backend routes → `backend/src/routes/*Routes.js`, admin endpoints → `backend/src/routes/admin/*.js`, large Vue views → `components/` + `composables/` + `utils/`. Shared money/referral/team math always lives in `backend/src/utils/`, never inlined into a route or component. Enforce with:
+  ```bash
+  node scripts/check-line-counts.mjs --all   # all apps from repo root
+  cd backend && npm run check:lines           # per app
+  cd frontend && npm run build:checked        # build only after the check passes
+  ```
+- **Active monolith migration.** `backend/server.js` and `backend/src/adminRoutes.js` are oversized and being migrated out. Do **not** add new endpoints to them — when you touch a business domain in either file, migrate that domain to a dedicated route module and keep it mounted/working. Other in-progress targets: `frontend/src/views/Assets.vue`, `admin/src/views/Layout.vue`.
+- **No mock/hardcoded data.** Always read from the database or a real API; never fabricate placeholder values in production code paths.
+- **Comments in English**, even though product/docs are bilingual.
+- **Preserve UI/layout.** Don't restyle existing screens; if a change is unavoidable, match the existing colors exactly.
+- **Don't add docs.** Maintain existing docs (`CLAUDE.md`, `AGENTS.md`) when behavior changes; do not create new standalone doc files unless asked.
+- After writing code, review your own logic for correctness before finishing.
+
+## Companion Docs
+
+`AGENTS.md` is the detailed bilingual architecture reference (full directory trees, tech-stack version table, core DB table list, referral/broker reward ratios, the file-migration target table, and `.env` examples). Consult it for specifics beyond this file. Also: `API.MD` (NodeReal BSC API), `RPC.md` (free RPC endpoints), `docs/` (ETH RPC guides).

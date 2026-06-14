@@ -15,7 +15,7 @@ const api = axios.create({
     }
 })
 
-// Request interceptor - add CSRF token
+// Request interceptor - add CSRF token + wallet auth token
 api.interceptors.request.use(
     (config) => {
         try {
@@ -25,6 +25,16 @@ api.interceptors.request.use(
             }
         } catch (e) {
             // Store might not be initialized
+        }
+        // SECURITY (C2): attach the wallet signature JWT so the backend can verify wallet
+        // ownership. Without this, /api/user endpoints can be called for any wallet.
+        try {
+            const walletToken = localStorage.getItem('wallet_auth_token')
+            if (walletToken) {
+                config.headers['Authorization'] = `Bearer ${walletToken}`
+            }
+        } catch (e) {
+            // localStorage unavailable
         }
         return config
     },
@@ -60,7 +70,18 @@ api.interceptors.response.use(
                 // Ignore
             }
         }
-        
+
+        // SECURITY (C2): clear an invalid/expired wallet JWT so the next flow re-authenticates.
+        if (error.response?.status === 401 || error.response?.data?.code === 'AUTH_REQUIRED') {
+            try {
+                localStorage.removeItem('wallet_auth_token')
+                localStorage.removeItem('wallet_auth_token_exp')
+                localStorage.removeItem('wallet_auth_wallet')
+            } catch (e) {
+                // Ignore
+            }
+        }
+
         return {
             success: false,
             message: error.response?.data?.message || error.message || 'Network error'

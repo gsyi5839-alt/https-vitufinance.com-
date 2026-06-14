@@ -1,0 +1,31 @@
+let dbQuery = null;
+
+function setDbQuery(queryFn) {
+    dbQuery = queryFn;
+}
+
+function getDbQuery() {
+    return dbQuery;
+}
+
+function formatDateTime(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function isValidWalletAddress(address) {
+    return /^0x[a-fA-F0-9]{40}$/i.test(address);
+}
+
+export {
+    setDbQuery,
+    getDbQuery,
+    formatDateTime,
+    isValidWalletAddress
+};

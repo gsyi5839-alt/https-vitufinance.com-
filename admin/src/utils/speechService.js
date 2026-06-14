@@ -5,6 +5,12 @@
  */
 
 import { ref } from 'vue'
+import {
+  buildAttackAlertMessage,
+  formatAmountForSpeech,
+  formatTokenForSpeech,
+  formatUserIdForSpeech
+} from './speechFormatters'
 
 // ==================== 语音设置状态 ====================
 
@@ -368,34 +374,7 @@ export const speakWithdrawComplete = (userId, amount, token = 'USDT') => {
  * @returns {Promise} 播报完成的Promise
  */
 export const speakAttackAlert = async (attackCount, attackType, severity) => {
-  // 格式化攻击类型
-  const typeMap = {
-    'sql_injection': 'SQL注入',
-    'xss': 'XSS攻击',
-    'brute_force': '暴力破解',
-    'rate_limit': '流量攻击',
-    'bot_detection': '机器人攻击',
-    'ddos': 'DDOS攻击',
-    'other': '恶意攻击'
-  }
-  const typeName = typeMap[attackType] || '恶意攻击'
-  
-  // 格式化严重程度
-  const severityMap = {
-    'low': '低级',
-    'medium': '中级',
-    'high': '高级',
-    'critical': '严重'
-  }
-  const severityName = severityMap[severity] || '中级'
-  
-  // 构建警报消息
-  let message
-  if (attackCount > 5) {
-    message = `警告，检测到大量攻击，${attackCount}次${typeName}，请立即处理`
-  } else {
-    message = `警告，检测到${severityName}${typeName}，共${attackCount}次`
-  }
+  const message = buildAttackAlertMessage(attackCount, attackType, severity)
   
   // 第一次播报
   await speak(message, { rate: 1.0, volume: 1.0 })
@@ -421,79 +400,6 @@ export const speakIPBlocked = (ip) => {
 }
 
 // ==================== 工具函数 ====================
-
-/**
- * 格式化用户ID用于语音播报
- * 如果是钱包地址，取后6位并逐字符读出
- * @param {string|number} userId 用户ID或钱包地址
- * @returns {string} 格式化后的用户ID字符串
- */
-const formatUserIdForSpeech = (userId) => {
-  if (!userId) return '未知用户'
-  
-  let displayId = String(userId)
-  
-  // 如果是钱包地址（长度超过10），取后6位
-  if (displayId.length > 10) {
-    displayId = displayId.slice(-6)
-  }
-  
-  // 将字母和数字逐个分开读，便于语音清晰播报
-  // 例如：ABC123 -> A B C 1 2 3
-  const chars = displayId.toUpperCase().split('')
-  const readableChars = chars.map(char => {
-    // 数字直接返回
-    if (/[0-9]/.test(char)) {
-      return char
-    }
-    // 字母返回，加空格分隔
-    return char
-  })
-  
-  return readableChars.join(' ')
-}
-
-/**
- * 格式化金额用于语音播报
- * @param {number} amount 金额
- * @returns {string} 格式化后的金额字符串
- */
-const formatAmountForSpeech = (amount) => {
-  const num = parseFloat(amount) || 0
-  
-  // 如果是整数，直接返回
-  if (Number.isInteger(num)) {
-    return num.toString()
-  }
-  
-  // 保留两位小数
-  const fixed = num.toFixed(2)
-  
-  // 如果小数部分是0，返回整数
-  if (fixed.endsWith('.00')) {
-    return Math.floor(num).toString()
-  }
-  
-  // 去掉末尾的0
-  return fixed.replace(/\.?0+$/, '')
-}
-
-/**
- * 格式化代币名称用于语音播报
- * @param {string} token 代币符号
- * @returns {string} 可读的代币名称
- */
-const formatTokenForSpeech = (token) => {
-  const tokenMap = {
-    'USDT': 'U S D T',
-    'USDC': 'U S D C',
-    'BTC': '比特币',
-    'ETH': '以太坊',
-    'BNB': 'B N B'
-  }
-  
-  return tokenMap[token?.toUpperCase()] || token || 'U S D T'
-}
 
 /**
  * 获取可用的语音列表
@@ -577,4 +483,3 @@ export default {
   speechRate,
   isSpeaking
 }
-

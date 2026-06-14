@@ -1,0 +1,249 @@
+// ==================== Element Plus 白天模式覆盖 ====================
+
+:root {
+  // 覆盖 Element Plus 卡片背景
+  --el-bg-color: var(--admin-card-bg);
+  --el-bg-color-overlay: var(--admin-bg-color-overlay);
+  --el-bg-color-page: var(--admin-bg-color-page);
+
+  // 覆盖文字颜色
+  --el-text-color-primary: var(--admin-text-primary);
+  --el-text-color-regular: var(--admin-text-regular);
+  --el-text-color-secondary: var(--admin-text-secondary);
+  --el-text-color-placeholder: var(--admin-text-placeholder);
+
+  // 覆盖边框颜色
+  --el-border-color: var(--admin-border-color);
+  --el-border-color-light: var(--admin-border-color-light);
+  --el-border-color-lighter: var(--admin-border-color-lighter);
+
+  // 覆盖填充颜色
+  --el-fill-color: var(--admin-bg-color);
+  --el-fill-color-light: var(--admin-border-color-light);
+  --el-fill-color-lighter: var(--admin-border-color-lighter);
+  --el-fill-color-blank: var(--admin-card-bg);
+
+  // 表格样式
+  .el-table {
+    --el-table-bg-color: var(--admin-card-bg);
+    --el-table-tr-bg-color: var(--admin-card-bg);
+    --el-table-header-bg-color: var(--admin-table-header-bg);
+    --el-table-row-hover-bg-color: var(--admin-table-row-hover);
+    --el-table-border-color: var(--admin-border-color);
+  }
+
+  // 卡片样式
+  .el-card {
+    --el-card-bg-color: var(--admin-card-bg);
+    --el-card-border-color: var(--admin-border-color);
+  }
+
+  // 对话框样式
+  .el-dialog {
+    --el-dialog-bg-color: var(--admin-card-bg);
+    --el-dialog-border-radius: 12px;
+  }
+
+  // 抽屉样式
+  .el-drawer {
+    --el-drawer-bg-color: var(--admin-card-bg);
+  }
+
+  // 输入框样式
+  .el-input {
+    --el-input-bg-color: var(--admin-input-bg);
+    --el-input-border-color: var(--admin-input-border);
+  }
+
+  // 选择器样式
+  .el-select {
+    --el-select-input-focus-border-color: var(--admin-primary);
+  }
+
+  // 下拉菜单
+  .el-dropdown-menu,
+  .el-select-dropdown {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+  }
+
+  // 消息提示
+  .el-message-box {
+    --el-messagebox-width: 420px;
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+  }
+
+  // 分页器
+  .el-pagination {
+    --el-pagination-bg-color: var(--admin-card-bg);
+    --el-pagination-button-bg-color: var(--admin-bg-color);
+    --el-pagination-button-disabled-bg-color: var(--admin-bg-color);
+  }
+
+  // Alert 提示框样式
+  .el-alert {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+
+    .el-alert__title {
+      color: var(--admin-text-primary);
+    }
+
+    .el-alert__description {
+      color: var(--admin-text-secondary);
+    }
+  }
+}
+
+// ==================== Element Plus 暗黑模式覆盖 ====================
+
+html.dark {
+  // 覆盖 Element Plus 卡片背景
+  --el-bg-color: var(--admin-card-bg);
+  --el-bg-color-overlay: var(--admin-bg-color-overlay);
+  --el-bg-color-page: var(--admin-bg-color-page);
+
+  // 覆盖文字颜色
+  --el-text-color-primary: var(--admin-text-primary);
+  --el-text-color-regular: var(--admin-text-regular);
+  --el-text-color-secondary: var(--admin-text-secondary);
+  --el-text-color-placeholder: var(--admin-text-placeholder);
+
+  // 覆盖边框颜色
+  --el-border-color: var(--admin-border-color);
+  --el-border-color-light: var(--admin-border-color-light);
+  --el-border-color-lighter: var(--admin-border-color-lighter);
+
+  // 覆盖填充颜色
+  --el-fill-color: var(--admin-bg-color);
+  --el-fill-color-light: var(--admin-border-color-light);
+  --el-fill-color-lighter: var(--admin-border-color-lighter);
+  --el-fill-color-blank: var(--admin-card-bg);
+
+  // 表格样式
+  .el-table {
+    --el-table-bg-color: var(--admin-card-bg);
+    --el-table-tr-bg-color: var(--admin-card-bg);
+    --el-table-header-bg-color: var(--admin-table-header-bg);
+    --el-table-row-hover-bg-color: var(--admin-table-row-hover);
+    --el-table-border-color: var(--admin-border-color);
+  }
+
+  // 卡片样式
+  .el-card {
+    --el-card-bg-color: var(--admin-card-bg);
+    --el-card-border-color: var(--admin-border-color);
+  }
+
+  // 对话框样式
+  .el-dialog {
+    --el-dialog-bg-color: var(--admin-card-bg);
+    --el-dialog-border-radius: 12px;
+  }
+
+  // 抽屉样式
+  .el-drawer {
+    --el-drawer-bg-color: var(--admin-card-bg);
+  }
+
+  // 输入框样式
+  .el-input {
+    --el-input-bg-color: var(--admin-input-bg);
+    --el-input-border-color: var(--admin-input-border);
+  }
+
+  // 选择器样式
+  .el-select {
+    --el-select-input-focus-border-color: var(--admin-primary);
+  }
+
+  // 下拉菜单
+  .el-dropdown-menu,
+  .el-select-dropdown {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+  }
+
+  // 消息提示
+  .el-message-box {
+    --el-messagebox-width: 420px;
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+  }
+
+  // 分页器
+  .el-pagination {
+    --el-pagination-bg-color: var(--admin-card-bg);
+    --el-pagination-button-bg-color: var(--admin-bg-color);
+    --el-pagination-button-disabled-bg-color: var(--admin-bg-color);
+  }
+
+  // 暗黑模式下的统计卡片
+  .stat-card {
+    background: var(--admin-card-bg);
+  }
+
+  // 暗黑模式下的搜索区域
+  .search-area {
+    background-color: var(--admin-card-bg);
+  }
+
+  // Alert 提示框暗黑模式样式
+  .el-alert {
+    background-color: var(--admin-card-bg);
+    border-color: var(--admin-border-color);
+
+    .el-alert__title {
+      color: var(--admin-text-primary);
+    }
+
+    .el-alert__description {
+      color: var(--admin-text-secondary);
+    }
+
+    // Success type alert - 半透明绿色背景
+    &.el-alert--success {
+      background-color: rgba(103, 194, 58, 0.15) !important;
+      border-color: rgba(103, 194, 58, 0.4) !important;
+
+      .el-alert__title,
+      .el-alert__description {
+        color: #95d475 !important;
+      }
+    }
+
+    // Warning type alert - 半透明橙色背景
+    &.el-alert--warning {
+      background-color: rgba(230, 162, 60, 0.15) !important;
+      border-color: rgba(230, 162, 60, 0.4) !important;
+
+      .el-alert__title,
+      .el-alert__description {
+        color: #f3d19e !important;
+      }
+    }
+
+    // Info type alert - 半透明灰色背景
+    &.el-alert--info {
+      background-color: rgba(144, 147, 153, 0.15) !important;
+      border-color: rgba(144, 147, 153, 0.4) !important;
+
+      .el-alert__title,
+      .el-alert__description {
+        color: #c8c9cc !important;
+      }
+    }
+
+    // Error type alert - 半透明红色背景
+    &.el-alert--error {
+      background-color: rgba(245, 108, 108, 0.15) !important;
+      border-color: rgba(245, 108, 108, 0.4) !important;
+
+      .el-alert__title,
+      .el-alert__description {
+        color: #fab6b6 !important;
+      }
+    }
+  }
+}

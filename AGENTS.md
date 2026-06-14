@@ -214,6 +214,24 @@ npm run build        # 生产构建 (输出到 dist/)
 npm run preview      # 预览生产构建
 ```
 
+### 代码行数检查
+
+单个代码文件超过 300 行时需要纳入拆分计划，超过 500 行时检查失败，必须拆分后再继续合并或部署新增代码。
+
+```bash
+# 分应用检查
+cd backend && npm run check:lines
+cd frontend && npm run check:lines
+cd admin && npm run check:lines
+
+# 检查通过后再构建（前端/后台）
+cd frontend && npm run build:checked
+cd admin && npm run build:checked
+
+# 从项目根目录检查全部应用
+node scripts/check-line-counts.mjs --all
+```
+
 ## 环境配置
 
 后端需要 `.env` 文件（参考 `backend/env.example`）：
@@ -408,6 +426,25 @@ tail -f /root/.pm2/logs/vitu-backend-out.log
 - 异步操作使用 async/await
 - 数据库查询使用参数化防止 SQL 注入
 - 金额计算使用 Decimal.js 避免浮点误差
+
+### 单文件代码管理
+
+新代码必须按模块边界拆分，单个业务文件目标控制在 **300-500 行**：
+
+- 后端路由按业务域放入 `backend/src/routes/`，例如市场行情、机器人、钱包、充值提现、推荐、质押、日志等。
+- 后台管理 API 按业务域放入 `backend/src/routes/admin/`，不要继续向 `backend/src/adminRoutes.js` 追加新接口。
+- Vue 页面超过 500 行时，必须拆分为 `components/` 子组件、`composables/` 组合式函数和 `utils/` 纯函数。
+- 共享计算逻辑必须放入 `utils/`，不要在页面组件或路由处理器中重复写金额、推荐、团队等级算法。
+- 现有超大文件采用渐进迁移策略：修改某个业务域时，同步把该业务域从大文件迁出，并保持构建或语法检查通过。
+
+当前重点迁移对象：
+
+| 文件 | 问题 | 迁移方向 |
+|------|------|----------|
+| `backend/server.js` | 主入口包含大量用户端业务接口 | 拆到 `backend/src/routes/*Routes.js` |
+| `backend/src/adminRoutes.js` | 后台 API 单文件过大 | 迁移到 `backend/src/routes/admin/*.js` 并逐步改挂载 |
+| `frontend/src/views/Assets.vue` | 页面承担过多资产、充值、提现逻辑 | 拆分资产卡片、充值提现弹窗、数据 composable |
+| `admin/src/views/Layout.vue` | 布局、菜单、通知、主题混在一起 | 拆分 Sidebar、Navbar、通知逻辑 |
 
 ### 错误处理
 

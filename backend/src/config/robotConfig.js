@@ -13,6 +13,7 @@
  * - Per quantification earnings = price × (daily_profit / 100) × (quantify_interval_hours / 24)
  * - Total return at maturity (High) = price × (daily_profit / 100) × (duration_hours / 24)
  */
+import { createRobotConfigApi } from './robotConfigService.js';
 
 // ============================================================================
 // Safety Limits - Prevents configuration errors from causing huge losses
@@ -400,213 +401,17 @@ const ALL_ROBOTS = {
     ...HIGH_ROBOTS
 };
 
-/**
- * Get robot configuration by name
- * @param {string} robotName - Robot name
- * @returns {object|null} Robot config or null if not found
- */
-function getRobotConfig(robotName) {
-    return ALL_ROBOTS[robotName] || null;
-}
-
-/**
- * Calculate robot end time
- * @param {string} robotName - Robot name
- * @param {Date} startTime - Start time (default: now)
- * @returns {Date} End time
- */
-function calculateEndTime(robotName, startTime = new Date()) {
-    const config = getRobotConfig(robotName);
-    if (!config) {
-        throw new Error(`Robot config not found: ${robotName}`);
-    }
-    
-    const endTime = new Date(startTime.getTime());
-    endTime.setTime(endTime.getTime() + config.duration_hours * 60 * 60 * 1000);
-    return endTime;
-}
-
-/**
- * Calculate per quantification earnings (with safety limits)
- * @param {string} robotName - Robot name
- * @param {number} price - Investment amount
- * @returns {number} Quantification earnings (with safety limits applied)
- */
-function calculateQuantifyEarnings(robotName, price) {
-    const config = getRobotConfig(robotName);
-    if (!config) {
-        throw new Error(`Robot config not found: ${robotName}`);
-    }
-    
-    // High robot doesn't calculate per-quantify earnings
-    if (config.single_quantify) {
-        return 0;
-    }
-    
-    // Safety check 1: Verify daily profit rate doesn't exceed limit
-    const effectiveDailyProfit = Math.min(
-        config.daily_profit, 
-        SAFETY_LIMITS.MAX_DAILY_PROFIT_RATE
-    );
-    
-    // Per quantify earnings = price × daily_profit × (interval/24)
-    const intervalDays = config.quantify_interval_hours / 24;
-    let earnings = price * (effectiveDailyProfit / 100) * intervalDays;
-    
-    // Safety check 2: Single earnings cannot exceed max limit
-    if (earnings > SAFETY_LIMITS.MAX_SINGLE_EARNING) {
-        console.warn(`[SAFETY] Earnings capped: ${robotName}, original=${earnings.toFixed(2)}, capped=${SAFETY_LIMITS.MAX_SINGLE_EARNING}`);
-        earnings = SAFETY_LIMITS.MAX_SINGLE_EARNING;
-    }
-    
-    // Safety check 3: Warning log for high earnings
-    if (earnings > SAFETY_LIMITS.EARNING_WARNING_THRESHOLD) {
-        console.warn(`[WARNING] High earnings detected: ${robotName}, price=${price}, earnings=${earnings.toFixed(2)}`);
-    }
-    
-    return parseFloat(earnings.toFixed(4));
-}
-
-/**
- * Calculate High robot return at maturity (with safety limits)
- * @param {string} robotName - Robot name
- * @param {number} price - Investment amount
- * @returns {number} Return amount (principal + interest, with safety limits)
- */
-function calculateHighRobotReturn(robotName, price) {
-    const config = getRobotConfig(robotName);
-    if (!config || config.robot_type !== 'high') {
-        return price; // Non-High robots only return principal
-    }
-    
-    // Safety check: Verify daily profit rate
-    const effectiveDailyProfit = Math.min(
-        config.daily_profit, 
-        SAFETY_LIMITS.MAX_DAILY_PROFIT_RATE
-    );
-    
-    // Total profit = principal × daily_profit × days
-    const days = config.duration_hours / 24;
-    const totalProfitRate = (effectiveDailyProfit / 100) * days;
-    let totalReturn = price * (1 + totalProfitRate);
-    
-    // Safety check: Total interest cannot exceed 50% of principal
-    const maxProfit = price * 0.5;
-    const actualProfit = totalReturn - price;
-    if (actualProfit > maxProfit) {
-        console.warn(`[SAFETY] High robot profit capped: ${robotName}, original profit=${actualProfit.toFixed(2)}, capped=${maxProfit.toFixed(2)}`);
-        totalReturn = price + maxProfit;
-    }
-    
-    return parseFloat(totalReturn.toFixed(4));
-}
-
-/**
- * Check if robot can be quantified
- * @param {object} robot - Robot purchase record (from database)
- * @param {Date} currentTime - Current time (default: now)
- * @returns {object} { canQuantify: boolean, reason: string, nextQuantifyTime: Date|null }
- */
-function checkQuantifyStatus(robot, currentTime = new Date()) {
-    const config = getRobotConfig(robot.robot_name);
-    if (!config) {
-        return { canQuantify: false, reason: 'Robot config not found', nextQuantifyTime: null };
-    }
-    
-    const endTime = new Date(robot.end_time);
-    
-    // Check if expired
-    if (currentTime >= endTime) {
-        return { canQuantify: false, reason: 'Robot has expired', nextQuantifyTime: null };
-    }
-    
-    // High robot: Can only quantify once
-    if (config.single_quantify) {
-        if (robot.is_quantified === 1) {
-            return { canQuantify: false, reason: 'This robot can only be quantified once, already completed', nextQuantifyTime: null };
-        }
-        return { canQuantify: true, reason: 'Can quantify', nextQuantifyTime: null };
-    }
-    
-    // Other robots: Check quantify interval
-    if (robot.last_quantify_time) {
-        const lastQuantifyTime = new Date(robot.last_quantify_time);
-        const intervalMs = config.quantify_interval_hours * 60 * 60 * 1000;
-        const nextQuantifyTime = new Date(lastQuantifyTime.getTime() + intervalMs);
-        
-        if (currentTime < nextQuantifyTime) {
-            const hoursRemaining = (nextQuantifyTime - currentTime) / (1000 * 60 * 60);
-            return {
-                canQuantify: false,
-                reason: `Need to wait ${Math.floor(hoursRemaining)} hours ${Math.floor((hoursRemaining % 1) * 60)} minutes for next quantification`,
-                nextQuantifyTime: nextQuantifyTime,
-                hoursRemaining: hoursRemaining
-            };
-        }
-    }
-    
-    return { canQuantify: true, reason: 'Can quantify', nextQuantifyTime: null };
-}
-
-/**
- * Check if robot has expired
- * @param {object} robot - Robot purchase record
- * @param {Date} currentTime - Current time
- * @returns {boolean} Whether expired
- */
-function isRobotExpired(robot, currentTime = new Date()) {
-    const endTime = new Date(robot.end_time);
-    return currentTime >= endTime;
-}
-
-/**
- * Get all robot configurations list
- * @param {string} type - Robot type (optional: cex, dex, grid, high)
- * @returns {array} Robot config list
- */
-function getRobotList(type = null) {
-    const robots = Object.entries(ALL_ROBOTS).map(([name, config]) => ({
-        name,
-        ...config
-    }));
-    
-    if (type) {
-        return robots.filter(r => r.robot_type === type);
-    }
-    
-    return robots;
-}
-
-/**
- * Convert hours to days
- * @param {number} hours - Hours
- * @returns {number} Days
- */
-function hoursToDays(hours) {
-    return Math.floor(hours / 24);
-}
-
-/**
- * Format remaining time
- * @param {Date} endTime - End time
- * @param {Date} currentTime - Current time
- * @returns {string} Formatted remaining time
- */
-function formatRemainingTime(endTime, currentTime = new Date()) {
-    const remaining = endTime - currentTime;
-    if (remaining <= 0) return 'Expired';
-    
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours >= 24) {
-        const days = Math.floor(hours / 24);
-        const remainingHours = hours % 24;
-        return `${days}d ${remainingHours}h`;
-    }
-    
-    return `${hours}h ${minutes}m`;
-}
+const {
+    getRobotConfig,
+    calculateEndTime,
+    calculateQuantifyEarnings,
+    calculateHighRobotReturn,
+    checkQuantifyStatus,
+    isRobotExpired,
+    getRobotList,
+    hoursToDays,
+    formatRemainingTime
+} = createRobotConfigApi({ SAFETY_LIMITS, ALL_ROBOTS });
 
 // Export module (ES Module syntax)
 export {
@@ -631,4 +436,3 @@ export {
     hoursToDays,
     formatRemainingTime
 };
-

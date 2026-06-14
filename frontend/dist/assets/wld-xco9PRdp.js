@@ -1,0 +1,1 @@
+var t="/static/icon/wld.png";export{t};

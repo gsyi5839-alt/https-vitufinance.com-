@@ -1,0 +1,298 @@
+// ==================== 页面容器样式 ====================
+
+.page-container {
+  padding: 24px;
+  // 透明背景让3D动画透出来
+  background-color: transparent;
+  border-radius: 8px;
+  min-height: calc(100vh - 140px);
+  transition: background-color 0.3s;
+}
+
+// 页面标题
+.page-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--admin-border-color-light);
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--admin-text-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .el-icon {
+      color: var(--admin-primary);
+    }
+  }
+
+  .description {
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    line-height: 1.6;
+  }
+}
+
+// ==================== 搜索区域 ====================
+
+.search-area {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: background-color 0.3s, border-color 0.3s;
+
+  .el-form-item {
+    margin-bottom: 12px;
+    margin-right: 16px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+
+// ==================== 表格操作栏 ====================
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+// ==================== 分页样式 ====================
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--admin-border-color-light);
+}
+
+// ==================== 统计卡片 ====================
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  // Safari优化：只过渡需要的属性
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 16px;
+  // GPU加速
+  will-change: transform;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--admin-card-shadow-hover);
+  }
+
+  .stat-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin-right: 20px;
+
+    &.primary {
+      background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
+    }
+
+    &.success {
+      background: linear-gradient(135deg, #67C23A 0%, #95d475 100%);
+    }
+
+    &.warning {
+      background: linear-gradient(135deg, #E6A23C 0%, #f3d19e 100%);
+    }
+
+    &.danger {
+      background: linear-gradient(135deg, #F56C6C 0%, #fab6b6 100%);
+    }
+
+    &.info {
+      background: linear-gradient(135deg, #909399 0%, #c8c9cc 100%);
+    }
+
+    .el-icon {
+      font-size: 28px;
+      color: #ffffff;
+    }
+  }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--admin-text-primary);
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--admin-text-secondary);
+    }
+
+    .stat-trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 13px;
+      height: 20px; // 固定高度确保卡片一致
+
+      &.up {
+        color: var(--admin-success);
+      }
+
+      &.down {
+        color: var(--admin-danger);
+      }
+
+      &.placeholder {
+        visibility: hidden;
+      }
+    }
+  }
+}
+
+// ==================== 金额样式 ====================
+
+.amount {
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+
+  &.positive {
+    color: var(--admin-success);
+  }
+
+  &.negative {
+    color: var(--admin-danger);
+  }
+
+  &.warning {
+    color: var(--admin-warning);
+  }
+}
+
+// ==================== 钱包地址样式 ====================
+
+.wallet-address {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--admin-text-regular);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--admin-bg-color);
+  border-radius: 4px;
+  // Safari优化：只过渡需要的属性
+  transition: color 0.15s ease-out, background-color 0.15s ease-out;
+
+  &:hover {
+    color: var(--admin-primary);
+    background: rgba(64, 158, 255, 0.1);
+  }
+
+  .el-icon {
+    font-size: 14px;
+    opacity: 0.6;
+  }
+}
+
+// ==================== 状态标签增强 ====================
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  &.active {
+    background: rgba(103, 194, 58, 0.1);
+    color: var(--admin-success);
+
+    &::before {
+      background: var(--admin-success);
+    }
+  }
+
+  &.pending {
+    background: rgba(230, 162, 60, 0.1);
+    color: var(--admin-warning);
+
+    &::before {
+      background: var(--admin-warning);
+    }
+  }
+
+  &.inactive, &.failed {
+    background: rgba(245, 108, 108, 0.1);
+    color: var(--admin-danger);
+
+    &::before {
+      background: var(--admin-danger);
+      animation: none;
+    }
+  }
+
+  &.processing {
+    background: rgba(64, 158, 255, 0.1);
+    color: var(--admin-primary);
+
+    &::before {
+      background: var(--admin-primary);
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

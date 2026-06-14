@@ -105,10 +105,10 @@
           <img src="/static/one/7.png" alt="Twitter" />
         </a>
         <a href="https://t.me/VituFinance" target="_blank" class="social-link">
-          <img src="/static/one/8.png" alt="WhatsApp" />
+          <img src="/static/one/8.png" alt="Support" />
         </a>
-        <a href="https://api.whatsapp.com/send/?phone=16465271638&text&type=phone_number&app_absent=0" target="_blank" class="social-link">
-          <img src="/static/one/em.png" alt="Support" />
+        <a href="https://wa.me/13322780144" target="_blank" class="social-link">
+          <img src="/static/one/em.png" alt="WhatsApp" />
         </a>
       </div>
     </section>
@@ -815,6 +815,14 @@ watch(() => walletStore.isConnected, async (connected) => {
 
 .social-link:hover {
   transform: translateY(-4px);
+}
+
+.social-link-disabled {
+  cursor: default;
+}
+
+.social-link-disabled:hover {
+  transform: none;
 }
 
 .social-icon-placeholder {

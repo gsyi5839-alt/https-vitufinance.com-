@@ -43,14 +43,9 @@ export default defineConfig({
             // 其他第三方库
             return 'vendor'
           }
-          // 组件按功能分包
-          if (id.includes('/src/components/')) {
-            return 'components'
-          }
-          // 视图按路由分包 - 按需加载
-          if (id.includes('/src/views/')) {
-            return 'views'
-          }
+          // Application source code is left to Rollup's dependency graph.
+          // Forcing src/views and src/components into fixed chunks created
+          // circular production imports after shared stores/API helpers moved.
         },
         // 确保文件名一致性
         chunkFileNames: 'assets/[name]-[hash].js',

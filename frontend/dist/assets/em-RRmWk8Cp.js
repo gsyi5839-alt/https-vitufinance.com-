@@ -1,0 +1,1 @@
+var t="/static/one/em.png";export{t};

@@ -295,10 +295,42 @@ const handleSignatureConfirm = async () => {
     // Update wallet store
     walletStore.setWallet(walletAddress, 'TokenPocket')
     
-    // Step 2: Request signature (triggers wallet password/biometric popup)
-    await requestSignature(walletAddress)
-    
-    // Step 3: Save timestamp and grant access
+    // Step 2: Obtain a backend-VERIFIED wallet JWT (challenge → sign → verify).
+    // SECURITY (C2): previously this only did a local personal_sign and never proved
+    // ownership to the server. We now sign the server-issued challenge and store the
+    // returned JWT, which secureApi attaches as `Authorization: Bearer` on every request.
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' }).catch(() => '')
+    const qs = new URLSearchParams({
+      wallet_address: walletAddress,
+      ...(chainId ? { chain_id: chainId } : {})
+    }).toString()
+    const challengeResp = await fetch(`/api/auth/challenge?${qs}`, { credentials: 'include' })
+    const challenge = await challengeResp.json().catch(() => ({}))
+    if (!challenge?.success || !challenge?.message) {
+      throw new Error(challenge?.message || '获取签名挑战失败')
+    }
+
+    const signature = await window.ethereum.request({
+      method: 'personal_sign',
+      params: [challenge.message, walletAddress]
+    })
+
+    const verifyResp = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ wallet_address: walletAddress, message: challenge.message, signature })
+    })
+    const verified = await verifyResp.json().catch(() => ({}))
+    if (!verified?.success || !verified?.token) {
+      throw new Error(verified?.message || '签名验证失败')
+    }
+
+    // Step 3: Persist the wallet JWT + local UI gate, then grant access.
+    const expMs = verified.expiresAt ? Date.parse(verified.expiresAt) : (Date.now() + SIGNATURE_VALIDITY_MS)
+    localStorage.setItem('wallet_auth_token', verified.token)
+    localStorage.setItem('wallet_auth_token_exp', String(expMs))
+    localStorage.setItem('wallet_auth_wallet', walletAddress.toLowerCase())
     saveSignatureTimestamp(walletAddress)
     isAuthenticated.value = true
     

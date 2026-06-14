@@ -2418,8 +2418,9 @@ router.post('/withdrawals/:id/auto-transfer', authMiddleware, async (req, res) =
       });
     }
 
-    // 获取提款记录
-    const withdrawal = await dbQuery('SELECT * FROM withdraw_records WHERE id = ?', [id]);
+    // 获取提款记录（dbQuery 返回数组，必须取第一行）
+    const withdrawalRows = await dbQuery('SELECT * FROM withdraw_records WHERE id = ?', [id]);
+    const withdrawal = Array.isArray(withdrawalRows) ? withdrawalRows[0] : null;
 
     if (!withdrawal) {
       return res.status(404).json({
@@ -2428,11 +2429,25 @@ router.post('/withdrawals/:id/auto-transfer', authMiddleware, async (req, res) =
       });
     }
 
-    // 检查提款状态
-    if (withdrawal.status !== 'processing' && withdrawal.status !== 'pending') {
+    // 已有链上交易哈希视为已发送，禁止重复转账
+    if (withdrawal.tx_hash) {
       return res.status(400).json({
         success: false,
-        message: `提款状态为 "${withdrawal.status}"，无法进行自动转账`
+        message: '该提款已存在链上交易，禁止重复转账'
+      });
+    }
+
+    // SECURITY: 原子认领该记录，仅当状态为 pending/processing 时占用为 sending。
+    // 防止并发/重复点击各自触发一次真实的链上转账（双花）。
+    const claim = await dbQuery(
+      "UPDATE withdraw_records SET status = 'sending', updated_at = NOW() WHERE id = ? AND status IN ('pending', 'processing') AND (tx_hash IS NULL OR tx_hash = '')",
+      [id]
+    );
+
+    if (!claim || claim.affectedRows === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `提款状态为 "${withdrawal.status}"，无法进行自动转账（可能已被处理）`
       });
     }
 
@@ -2452,6 +2467,12 @@ router.post('/withdrawals/:id/auto-transfer', authMiddleware, async (req, res) =
     if (!transferResult.success) {
       // 记录转账失败
       console.error(`[Auto-Transfer] ❌ 转账失败: ${transferResult.error}`);
+
+      // 转账未成功：释放认领，恢复为 pending 以便后续重试
+      await dbQuery(
+        "UPDATE withdraw_records SET status = 'pending', updated_at = NOW() WHERE id = ? AND status = 'sending'",
+        [id]
+      );
 
       return res.status(400).json({
         success: false,
@@ -5120,6 +5141,42 @@ router.get('/settings/:key', authMiddleware, async (req, res) => {
   }
 });
 
+// SECURITY: 钱包收款地址类设置必须二次校验安全密码（防止仅凭 JWT 篡改收款地址、劫持充值）。
+const WALLET_SETTING_KEYS = ['platform_wallet_address', 'platform_wallet_bsc', 'platform_wallet_eth'];
+
+/**
+ * 校验改动是否涉及钱包地址键，若涉及则要求并验证安全密码。
+ * @param {string[]} keys 本次写入涉及的设置键
+ * @param {string} securityPassword 管理员提交的安全密码
+ * @returns {Promise<{ok: boolean, status?: number, message?: string, requirePassword?: boolean}>}
+ */
+async function ensureWalletSettingAuthorized(keys, securityPassword) {
+  const touched = keys.filter(k => WALLET_SETTING_KEYS.includes(k));
+  if (touched.length === 0) return { ok: true };
+
+  const pwdRows = await dbQuery(
+    'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+    ['wallet_security_password']
+  );
+  const stored = pwdRows && pwdRows.length > 0 ? pwdRows[0] : null;
+
+  // 未设置安全密码时，沿用既有行为（不强制），但记录告警便于尽快补设。
+  if (!stored || !stored.setting_value) {
+    console.warn(`[Admin] 钱包设置变更但未配置安全密码: ${touched.join(', ')}`);
+    return { ok: true };
+  }
+
+  if (!securityPassword) {
+    return { ok: false, status: 400, message: '修改钱包地址需要安全密码', requirePassword: true };
+  }
+  const isValid = await verifyPassword(securityPassword, stored.setting_value);
+  if (!isValid) {
+    console.warn(`[Admin] 钱包设置修改失败 - 安全密码错误: ${touched.join(', ')}`);
+    return { ok: false, status: 403, message: '安全密码错误' };
+  }
+  return { ok: true };
+}
+
 /**
  * 更新系统设置
  * PUT /api/admin/settings/:key
@@ -5204,18 +5261,29 @@ router.put('/settings/:key', authMiddleware, async (req, res) => {
  */
 router.post('/settings/batch', authMiddleware, async (req, res) => {
   try {
-    const { settings } = req.body;
-    
+    const { settings, securityPassword } = req.body;
+
     if (!settings || typeof settings !== 'object') {
       return res.status(400).json({
         success: false,
         message: '请提供设置对象'
       });
     }
-    
+
     const keys = Object.keys(settings);
+
+    // SECURITY: 批量写入同样需要对钱包地址键校验安全密码
+    const walletAuth = await ensureWalletSettingAuthorized(keys, securityPassword);
+    if (!walletAuth.ok) {
+      return res.status(walletAuth.status).json({
+        success: false,
+        message: walletAuth.message,
+        requirePassword: walletAuth.requirePassword
+      });
+    }
+
     let updated = 0;
-    
+
     for (const key of keys) {
       const value = settings[key];
       const result = await dbQuery(
@@ -5548,15 +5616,25 @@ router.post('/wallet-config', authMiddleware, async (req, res) => {
  */
 router.post('/settings', authMiddleware, async (req, res) => {
   try {
-    const { key, value, type = 'text', description = '' } = req.body;
-    
+    const { key, value, type = 'text', description = '', securityPassword } = req.body;
+
     if (!key || value === undefined) {
       return res.status(400).json({
         success: false,
         message: '请提供设置键名和值'
       });
     }
-    
+
+    // SECURITY: 新增钱包地址类设置同样需要安全密码
+    const walletAuth = await ensureWalletSettingAuthorized([key], securityPassword);
+    if (!walletAuth.ok) {
+      return res.status(walletAuth.status).json({
+        success: false,
+        message: walletAuth.message,
+        requirePassword: walletAuth.requirePassword
+      });
+    }
+
     // 检查是否已存在
     const existing = await dbQuery(
       'SELECT id FROM system_settings WHERE setting_key = ?',

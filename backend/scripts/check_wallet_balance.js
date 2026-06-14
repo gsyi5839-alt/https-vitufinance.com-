@@ -3,7 +3,12 @@
  */
 import { ethers } from 'ethers';
 
-const PRIVATE_KEY = '4263fe95dcdb4fe82429c14c7ef8c55157b33e8237172288ce8f7cecc3de40a7';
+// SECURITY: never hardcode private keys. Load from environment.
+const PRIVATE_KEY = process.env.TRANSFER_PRIVATE_KEY;
+if (!PRIVATE_KEY) {
+    console.error('Missing TRANSFER_PRIVATE_KEY environment variable');
+    process.exit(1);
+}
 const BSC_RPC = 'https://bsc-dataseed.binance.org:443';
 const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
 

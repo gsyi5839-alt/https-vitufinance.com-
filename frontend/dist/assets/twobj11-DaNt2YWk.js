@@ -1,0 +1,1 @@
+var t="/static/two/twobj11.png";export{t};

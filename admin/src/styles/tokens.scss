@@ -1,0 +1,115 @@
+// ==================== 颜色变量定义 ====================
+
+// 亮色主题变量
+:root {
+  // 主色调
+  --admin-primary: #409EFF;
+  --admin-primary-light: #79bbff;
+  --admin-primary-dark: #337ecc;
+
+  // 功能色
+  --admin-success: #67C23A;
+  --admin-warning: #E6A23C;
+  --admin-danger: #F56C6C;
+  --admin-info: #909399;
+
+  // 背景色 - 透明让3D动画透出
+  --admin-bg-color: transparent;
+  --admin-bg-color-page: transparent;
+  --admin-bg-color-overlay: rgba(0, 0, 0, 0.5);
+
+  // 卡片/容器背景
+  --admin-card-bg: #ffffff;
+  --admin-card-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --admin-card-shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  // 侧边栏
+  --admin-sidebar-bg: #001529;
+  --admin-sidebar-bg-rgb: 0, 21, 41; // RGB 变量用于透明度
+  --admin-sidebar-text: rgba(255, 255, 255, 0.65);
+  --admin-sidebar-text-active: #ffffff;
+  --admin-sidebar-item-hover: rgba(255, 255, 255, 0.08);
+  --admin-sidebar-item-active: var(--admin-primary);
+
+  // 顶部导航
+  --admin-header-bg: #ffffff;
+  --admin-header-bg-rgb: 255, 255, 255; // RGB 变量用于透明度
+  --admin-header-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+
+  // 文字颜色
+  --admin-text-primary: #303133;
+  --admin-text-regular: #606266;
+  --admin-text-secondary: #909399;
+  --admin-text-placeholder: #c0c4cc;
+
+  // 边框颜色
+  --admin-border-color: #dcdfe6;
+  --admin-border-color-light: #e4e7ed;
+  --admin-border-color-lighter: #ebeef5;
+
+  // 表格
+  --admin-table-header-bg: #f5f7fa;
+  --admin-table-row-hover: #f5f7fa;
+  --admin-table-stripe-bg: #fafafa;
+
+  // 输入框
+  --admin-input-bg: #ffffff;
+  --admin-input-border: #dcdfe6;
+}
+
+// 暗黑主题变量
+html.dark {
+  // 主色调保持不变，适当调亮
+  --admin-primary: #409EFF;
+  --admin-primary-light: #66b1ff;
+  --admin-primary-dark: #3375b9;
+
+  // 功能色调整
+  --admin-success: #67C23A;
+  --admin-warning: #E6A23C;
+  --admin-danger: #F56C6C;
+  --admin-info: #909399;
+
+  // 背景色 - 透明让3D动画透出
+  --admin-bg-color: transparent;
+  --admin-bg-color-page: transparent;
+  --admin-bg-color-overlay: rgba(0, 0, 0, 0.7);
+
+  // 卡片/容器背景 - 半透明毛玻璃
+  --admin-card-bg: rgba(30, 40, 50, 0.9);
+  --admin-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --admin-card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
+
+  // 侧边栏 - 更深的背景
+  --admin-sidebar-bg: #0d1117;
+  --admin-sidebar-bg-rgb: 13, 17, 23;
+  --admin-sidebar-text: rgba(255, 255, 255, 0.65);
+  --admin-sidebar-text-active: #ffffff;
+  --admin-sidebar-item-hover: rgba(255, 255, 255, 0.08);
+  --admin-sidebar-item-active: var(--admin-primary);
+
+  // 顶部导航
+  --admin-header-bg: #161b22;
+  --admin-header-bg-rgb: 22, 27, 34;
+  --admin-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+
+  // 文字颜色 - 亮色文字
+  --admin-text-primary: #f0f6fc;
+  --admin-text-regular: #c9d1d9;
+  --admin-text-secondary: #8b949e;
+  --admin-text-placeholder: #484f58;
+
+  // 边框颜色 - 深色边框
+  --admin-border-color: #30363d;
+  --admin-border-color-light: #21262d;
+  --admin-border-color-lighter: #161b22;
+
+  // 表格
+  --admin-table-header-bg: #161b22;
+  --admin-table-row-hover: #30363d;
+  --admin-table-stripe-bg: #0d1117;
+
+  // 输入框
+  --admin-input-bg: #0d1117;
+  --admin-input-border: #30363d;
+}
