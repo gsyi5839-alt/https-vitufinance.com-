@@ -129,6 +129,13 @@ const routes = [
         component: () => import('@/views/Announcements.vue'),
         meta: { title: '公告管理', icon: 'Bell' }
       },
+      // 邮件群发暂时停用
+      // {
+      //   path: 'emails',
+      //   name: 'Emails',
+      //   component: () => import('@/views/Emails.vue'),
+      //   meta: { title: '邮件群发', icon: 'Message' }
+      // },
       // 资质文件
       {
         path: 'documents',

@@ -8,36 +8,13 @@ import {
 } from '../security/index.js';
 import { sensitiveLimiter, recordSuspiciousActivity } from '../middleware/security.js';
 import { getPlatformWalletAddressByChain } from '../utils/platformWallet.js';
-
-const CHAIN_CONFIGS = {
-    BSC: {
-        name: 'BNB Smart Chain',
-        rpcUrl: 'https://bsc-dataseed.binance.org/',
-        usdtContract: '0x55d398326f99059fF775485246999027B3197955',
-        decimals: 18,
-        platformWallet: '0x0290df8A512Eff68d0B0a3ECe1E3F6aAB49d79D4'
-    },
-    ETH: {
-        name: 'Ethereum Mainnet',
-        rpcUrl: 'https://eth.llamarpc.com',
-        usdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-        decimals: 6,
-        platformWallet: '0x8a92c73FdE5d0313303989eB269d6d17ffb1ba9d'
-    }
-};
-
-const ALLOWED_CHAINS = ['BSC', 'ETH'];
-const ALLOWED_TOKENS = ['USDT', 'WLD'];
-
-function normalizeChain(chain) {
-    const candidate = chain?.toUpperCase();
-    return ALLOWED_CHAINS.includes(candidate) ? candidate : 'BSC';
-}
-
-function normalizeToken(token) {
-    const candidate = String(token || 'USDT').toUpperCase();
-    return ALLOWED_TOKENS.includes(candidate) ? candidate : 'USDT';
-}
+import {
+    CHAIN_CONFIGS,
+    getTokenConfig,
+    normalizeChain,
+    normalizeToken,
+    rawAmountToNumber
+} from '../utils/depositTokenConfig.js';
 
 async function getTransactionReceipt(txHash, chainConfig) {
     const response = await fetch(chainConfig.rpcUrl, {
@@ -54,14 +31,19 @@ async function getTransactionReceipt(txHash, chainConfig) {
     return response.json();
 }
 
-async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expectedAmount, chain = 'BSC') {
+async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expectedAmount, chain = 'BSC', token = 'USDT') {
     try {
         const chainConfig = CHAIN_CONFIGS[chain];
         if (!chainConfig) {
             return { valid: false, message: `Unsupported chain: ${chain}` };
         }
 
-        console.log(`[Deposit] Verifying ${chain} transaction:`, txHash);
+        const tokenConfig = getTokenConfig(chainConfig, token);
+        if (!tokenConfig) {
+            return { valid: false, message: `${token} deposits are not supported on ${chain}` };
+        }
+
+        console.log(`[Deposit] Verifying ${chain} ${token} transaction:`, txHash);
         const data = await getTransactionReceipt(txHash, chainConfig);
 
         if (!data.result) {
@@ -85,19 +67,19 @@ async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expected
             return { valid: false, message: 'Transaction sender does not match' };
         }
 
-        const usdtContract = chainConfig.usdtContract.toLowerCase();
-        if (receipt.to.toLowerCase() !== usdtContract) {
-            return { valid: false, message: `Transaction is not a ${chain} USDT transfer` };
+        const tokenContract = tokenConfig.contract.toLowerCase();
+        if (receipt.to.toLowerCase() !== tokenContract) {
+            return { valid: false, message: `Transaction is not a ${chain} ${token} transfer` };
         }
 
         const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
         const transferLog = receipt.logs.find(log =>
             log.topics[0] === transferTopic &&
-            log.address.toLowerCase() === usdtContract
+            log.address.toLowerCase() === tokenContract
         );
 
         if (!transferLog) {
-            return { valid: false, message: `No USDT transfer found in ${chain} transaction` };
+            return { valid: false, message: `No ${token} transfer found in ${chain} transaction` };
         }
 
         const toAddress = `0x${transferLog.topics[2].slice(26)}`;
@@ -106,7 +88,7 @@ async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expected
         }
 
         const rawAmount = BigInt(transferLog.data);
-        const actualAmount = Number(rawAmount) / Math.pow(10, chainConfig.decimals);
+        const actualAmount = rawAmountToNumber(rawAmount, tokenConfig.decimals);
         if (Math.abs(actualAmount - expectedAmount) > 0.01) {
             return {
                 valid: false,
@@ -120,7 +102,8 @@ async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expected
             from: receipt.from,
             to: toAddress,
             amount: actualAmount,
-            chain
+            chain,
+            token
         });
 
         return { valid: true, message: 'Transaction verified', actualAmount };
@@ -169,6 +152,13 @@ export function createUserTransactionRoutes({ dbQuery, processUplineDailyDividen
 
             const safeChain = normalizeChain(chain);
             const safeToken = normalizeToken(token);
+            if (!safeToken) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Unsupported token: ${token}`
+                });
+            }
+
             const walletAddr = normalizeWalletAddress(wallet_address);
             const depositAmount = parseFloat(amount);
 
@@ -194,7 +184,8 @@ export function createUserTransactionRoutes({ dbQuery, processUplineDailyDividen
                 walletAddr,
                 platformWallet,
                 depositAmount,
-                safeChain
+                safeChain,
+                safeToken
             );
 
             if (!verification.valid) {
@@ -243,7 +234,8 @@ export function createUserTransactionRoutes({ dbQuery, processUplineDailyDividen
                 wallet_address: normalizedWalletAddr,
                 amount: actualDepositAmount,
                 tx_hash,
-                chain: safeChain
+                chain: safeChain,
+                token: safeToken
             });
 
             res.json({

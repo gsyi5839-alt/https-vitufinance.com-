@@ -3,6 +3,17 @@
     "connectWallet": "Connect wallet",
     "language": "English"
   },
+  "emailBind": {
+    "title": "Bind email",
+    "desc": "Please bind your email address so the platform can send account and service notifications.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email address",
+    "emailRequired": "Please enter your email address",
+    "emailInvalid": "Please enter a valid email address",
+    "submit": "Bind email",
+    "success": "Email bound successfully",
+    "failed": "Failed to bind email"
+  },
   "onePage": {
     "emailText": "Contact us for more information",
     "items": [
@@ -565,6 +576,7 @@
   "depositModal": {
     "title": "Deposit",
     "selectNetwork": "Select Network",
+    "selectCurrency": "Select Currency",
     "lowGasFee": "Low Gas Fee",
     "mainnet": "Mainnet",
     "enterAmount": "Enter the amount",

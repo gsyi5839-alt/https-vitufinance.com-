@@ -13,12 +13,21 @@
  */
 
 import { useWalletStore } from '@/stores/wallet'
-
-// ==================== 初始化保护机制 ====================
-// Prevents accountsChanged([]) event from triggering disconnect during page refresh
-// Some wallets briefly return empty accounts during reload
-let isInitializing = true
-let initializationTimeout = null
+import {
+  beginWalletInitialization,
+  finishWalletInitializationSoon,
+  setupWalletProviderListeners,
+  syncWalletAccountState
+} from '@/utils/walletProviderEvents'
+export {
+  getAllBalances,
+  getNetworkInfo,
+  getTokenBalance,
+  getUsdtBalance,
+  getWalletBalance,
+  getWldBalance,
+  refreshBalances
+} from '@/utils/walletBalances'
 
 /**
  * 检测是否在 DApp 浏览器环境中
@@ -239,128 +248,6 @@ export const autoConnectWallet = async () => {
 }
 
 /**
- * 监听账户变化
- * 当用户在钱包中切换账户时触发
- * 
- * IMPORTANT: Added initialization protection to prevent false disconnects
- * during page refresh. Some wallets briefly return empty accounts during reload.
- */
-export const setupAccountChangeListener = () => {
-  if (!isDAppBrowser()) {
-    return
-  }
-
-  const walletStore = useWalletStore()
-  const ethereum = window.ethereum
-
-  // 监听账户变化
-  ethereum.on('accountsChanged', (accounts) => {
-    console.log('[Wallet] Accounts changed:', accounts, 'isInitializing:', isInitializing)
-
-    if (accounts && accounts.length > 0) {
-      const walletType = detectWalletType()
-      const nextAccount = accounts[0]
-      const prevAccount = (walletStore.walletAddress || '').toLowerCase()
-
-      // 切换账户后，清理签名认证缓存（避免旧token误用）
-      if (nextAccount && nextAccount.toLowerCase() !== prevAccount) {
-        localStorage.removeItem('wallet_auth_token')
-        localStorage.removeItem('wallet_auth_token_exp')
-        localStorage.removeItem('wallet_auth_wallet')
-      }
-
-      walletStore.setWallet(nextAccount, walletType)
-    } else {
-      // PROTECTION: During initialization, ignore empty accounts
-      // Some wallets briefly return empty accounts during page refresh
-      if (isInitializing) {
-        console.log('[Wallet] Ignoring empty accounts during initialization')
-        return
-      }
-      
-      // Check if we have a saved address - wait for reconnection
-      const savedAddress = localStorage.getItem('walletAddress')
-      if (savedAddress) {
-        console.log('[Wallet] Empty accounts but have saved address, waiting...')
-        setTimeout(async () => {
-          const currentAccount = await getCurrentAccount()
-          if (!currentAccount) {
-            console.log('[Wallet] No reconnection, disconnecting')
-            localStorage.removeItem('wallet_auth_token')
-            localStorage.removeItem('wallet_auth_token_exp')
-            localStorage.removeItem('wallet_auth_wallet')
-            // Wallet-provider transient empty accounts on refresh:
-            // Mark as disconnected but keep last known balances to avoid "balance -> 0" UX bug.
-            walletStore.disconnect({
-              clearBalances: false,
-              clearPersistedBalances: false,
-              clearWalletSession: true
-            })
-          }
-        }, 2000)
-        return
-      }
-      
-      // 用户断开了所有账户
-      localStorage.removeItem('wallet_auth_token')
-      localStorage.removeItem('wallet_auth_token_exp')
-      localStorage.removeItem('wallet_auth_wallet')
-      // User removed all accounts: full disconnect (clear balances)
-      walletStore.disconnect({
-        clearBalances: true,
-        clearPersistedBalances: true,
-        clearWalletSession: true
-      })
-    }
-  })
-
-  // 监听链变化
-  ethereum.on('chainChanged', (chainId) => {
-    console.log('[Wallet] Chain changed:', chainId)
-  })
-
-  // 监听断开连接
-  ethereum.on('disconnect', (error) => {
-    console.log('[Wallet] Disconnect event:', error, 'isInitializing:', isInitializing)
-    
-    // PROTECTION: During initialization, ignore disconnect event
-    if (isInitializing) {
-      console.log('[Wallet] Ignoring disconnect during initialization')
-      return
-    }
-    
-    // Check for saved address
-    const savedAddress = localStorage.getItem('walletAddress')
-    if (savedAddress) {
-      setTimeout(async () => {
-        const currentAccount = await getCurrentAccount()
-        if (!currentAccount) {
-          localStorage.removeItem('wallet_auth_token')
-          localStorage.removeItem('wallet_auth_token_exp')
-          localStorage.removeItem('wallet_auth_wallet')
-          // Wallet-provider transient disconnect: keep balances
-          walletStore.disconnect({
-            clearBalances: false,
-            clearPersistedBalances: false,
-            clearWalletSession: true
-          })
-        }
-      }, 2000)
-      return
-    }
-    
-    localStorage.removeItem('wallet_auth_token')
-    localStorage.removeItem('wallet_auth_token_exp')
-    localStorage.removeItem('wallet_auth_wallet')
-    walletStore.disconnect({
-      clearBalances: true,
-      clearPersistedBalances: true,
-      clearWalletSession: true
-    })
-  })
-}
-
-/**
  * 初始化钱包连接
  * 在应用启动时调用
  * 
@@ -369,283 +256,27 @@ export const setupAccountChangeListener = () => {
  */
 export const initWallet = async () => {
   console.log('[Wallet] Initializing...')
-  
-  // Set initialization flag
-  isInitializing = true
-  
-  // Clear any existing timeout
-  if (initializationTimeout) {
-    clearTimeout(initializationTimeout)
+
+  beginWalletInitialization()
+
+  const walletDeps = {
+    isDAppBrowser,
+    getCurrentAccount,
+    detectWalletType
   }
 
-  // 设置监听器
-  setupAccountChangeListener()
+  // 设置监听器；不支持 ethereum.on 的钱包会自动启用 eth_accounts 轮询兜底
+  setupWalletProviderListeners(walletDeps)
 
   // 尝试自动连接
   const connected = await autoConnectWallet()
+  await syncWalletAccountState(walletDeps)
 
   console.log('[Wallet] Initialization complete, connected:', connected)
-  
-  // Clear initialization flag after delay (allow wallet to stabilize)
-  initializationTimeout = setTimeout(() => {
-    isInitializing = false
-    console.log('[Wallet] Initialization protection disabled')
-  }, 3000)
 
-  return connected
-}
+  finishWalletInitializationSoon()
 
-/**
- * 获取钱包余额（ETH）
- * @param {string} address - 钱包地址
- * @returns {Promise<string>} 余额（单位：ETH）
- */
-export const getWalletBalance = async (address) => {
-  if (!isDAppBrowser() || !address) {
-    return '0'
-  }
-
-  try {
-    const ethereum = window.ethereum
-    const balance = await ethereum.request({
-      method: 'eth_getBalance',
-      params: [address, 'latest']
-    })
-
-    // 将 wei 转换为 ETH
-    const ethBalance = parseInt(balance, 16) / 1e18
-    return ethBalance.toFixed(4)
-  } catch (error) {
-    console.error('[Wallet] Get balance error:', error)
-    return '0'
-  }
-}
-
-/**
- * 获取当前网络信息
- * @returns {Promise<{chainId: string, networkName: string}>}
- */
-export const getNetworkInfo = async () => {
-  if (!isDAppBrowser()) {
-    return { chainId: '', networkName: 'Unknown' }
-  }
-
-  try {
-    const ethereum = window.ethereum
-    const chainId = await ethereum.request({
-      method: 'eth_chainId'
-    })
-
-    // 常见网络名称映射
-    const networkNames = {
-      '0x1': 'Ethereum Mainnet',
-      '0x38': 'BSC Mainnet',
-      '0x89': 'Polygon Mainnet',
-      '0xa86a': 'Avalanche C-Chain',
-      '0xa4b1': 'Arbitrum One',
-      '0xa': 'Optimism',
-      '0x5': 'Goerli Testnet',
-      '0xaa36a7': 'Sepolia Testnet'
-    }
-
-    return {
-      chainId: chainId,
-      networkName: networkNames[chainId] || `Chain ID: ${parseInt(chainId, 16)}`
-    }
-  } catch (error) {
-    console.error('[Wallet] Get network error:', error)
-    return { chainId: '', networkName: 'Unknown' }
-  }
-}
-
-// ==================== 代币余额相关 ====================
-
-/**
- * ERC20 代币合约 ABI（只包含 balanceOf 方法）
- */
-const ERC20_BALANCE_ABI = [
-  {
-    constant: true,
-    inputs: [{ name: '_owner', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: 'balance', type: 'uint256' }],
-    type: 'function'
-  }
-]
-
-/**
- * 常用代币合约地址（BSC 主网）
- * 注意：不同网络的合约地址不同
- */
-const TOKEN_CONTRACTS = {
-  // BSC 主网
-  '0x38': {
-    USDT: '0x55d398326f99059fF775485246999027B3197955', // BSC USDT
-    WLD: '0x0000000000000000000000000000000000000000'   // WLD 地址（需要替换为实际地址）
-  },
-  // 以太坊主网
-  '0x1': {
-    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // ETH USDT
-    WLD: '0x163f8C2467924be0ae7B5347228CABF260318753'   // ETH WLD
-  },
-  // Polygon
-  '0x89': {
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // Polygon USDT
-    WLD: '0x0000000000000000000000000000000000000000'
-  }
-}
-
-/**
- * 获取 ERC20 代币余额
- * @param {string} address - 钱包地址
- * @param {string} tokenContract - 代币合约地址
- * @param {number} decimals - 代币精度（默认18）
- * @returns {Promise<string>} 代币余额
- */
-export const getTokenBalance = async (address, tokenContract, decimals = 18) => {
-  if (!isDAppBrowser() || !address || !tokenContract) {
-    return '0'
-  }
-
-  try {
-    const ethereum = window.ethereum
-
-    // 构造 balanceOf 调用数据
-    // balanceOf(address) 函数签名: 0x70a08231
-    const data = '0x70a08231' + address.slice(2).padStart(64, '0')
-
-    const result = await ethereum.request({
-      method: 'eth_call',
-      params: [
-        {
-          to: tokenContract,
-          data: data
-        },
-        'latest'
-      ]
-    })
-
-    // 将结果从 hex 转换为数字
-    const balance = parseInt(result, 16) / Math.pow(10, decimals)
-    return balance.toFixed(4)
-  } catch (error) {
-    console.error('[Wallet] Get token balance error:', error)
-    return '0'
-  }
-}
-
-/**
- * 获取 USDT 余额
- * @param {string} address - 钱包地址
- * @returns {Promise<string>} USDT 余额
- */
-export const getUsdtBalance = async (address) => {
-  if (!isDAppBrowser() || !address) {
-    return '0.0000'
-  }
-
-  try {
-    // 获取当前链 ID
-    const { chainId } = await getNetworkInfo()
-    const contracts = TOKEN_CONTRACTS[chainId]
-
-    if (!contracts || !contracts.USDT) {
-      console.log('[Wallet] USDT contract not found for chain:', chainId)
-      return '0.0000'
-    }
-
-    // USDT 通常是 6 位小数（以太坊）或 18 位小数（BSC）
-    const decimals = chainId === '0x1' ? 6 : 18
-    return await getTokenBalance(address, contracts.USDT, decimals)
-  } catch (error) {
-    console.error('[Wallet] Get USDT balance error:', error)
-    return '0.0000'
-  }
-}
-
-/**
- * 获取 WLD 余额
- * @param {string} address - 钱包地址
- * @returns {Promise<string>} WLD 余额
- */
-export const getWldBalance = async (address) => {
-  if (!isDAppBrowser() || !address) {
-    return '0.0000'
-  }
-
-  try {
-    // 获取当前链 ID
-    const { chainId } = await getNetworkInfo()
-    const contracts = TOKEN_CONTRACTS[chainId]
-
-    if (!contracts || !contracts.WLD || contracts.WLD === '0x0000000000000000000000000000000000000000') {
-      console.log('[Wallet] WLD contract not found for chain:', chainId)
-      return '0.0000'
-    }
-
-    // WLD 是 18 位小数
-    return await getTokenBalance(address, contracts.WLD, 18)
-  } catch (error) {
-    console.error('[Wallet] Get WLD balance error:', error)
-    return '0.0000'
-  }
-}
-
-/**
- * 获取所有代币余额
- * @param {string} address - 钱包地址
- * @returns {Promise<{usdt: string, wld: string, equity: string}>}
- */
-export const getAllBalances = async (address) => {
-  const walletStore = useWalletStore()
-  
-  walletStore.setLoadingBalance(true)
-
-  try {
-    // 并行获取所有余额
-    const [usdt, wld] = await Promise.all([
-      getUsdtBalance(address),
-      getWldBalance(address)
-    ])
-
-    // 计算总权益（简单相加，实际应该根据汇率计算）
-    const usdtNum = parseFloat(usdt) || 0
-    const wldNum = parseFloat(wld) || 0
-    // 假设 WLD 价格为 0（需要从实际API获取价格）
-    const equity = usdtNum.toFixed(4)
-
-    // 更新 store
-    walletStore.updateBalances({
-      usdt,
-      wld,
-      equity,
-      pnl: '+0.00' // 今日盈亏需要从后端获取
-    })
-
-    console.log('[Wallet] All balances fetched:', { usdt, wld, equity })
-
-    return { usdt, wld, equity }
-  } catch (error) {
-    console.error('[Wallet] Get all balances error:', error)
-    return { usdt: '0.0000', wld: '0.0000', equity: '0.0000' }
-  } finally {
-    walletStore.setLoadingBalance(false)
-  }
-}
-
-/**
- * 刷新钱包余额
- * 在连接成功后或用户手动刷新时调用
- */
-export const refreshBalances = async () => {
-  const walletStore = useWalletStore()
-  
-  if (!walletStore.isConnected || !walletStore.walletAddress) {
-    console.log('[Wallet] Cannot refresh balances: wallet not connected')
-    return
-  }
-
-  return await getAllBalances(walletStore.walletAddress)
+  return connected || useWalletStore().isConnected
 }
 
 /**

@@ -11,6 +11,8 @@
       <template v-if="!isMaintenanceMode">
       <Navigation v-if="showNavigation" />
       <router-view />
+      <!-- Email binding is temporarily disabled. -->
+      <!-- <EmailBindPrompt /> -->
       </template>
     </el-config-provider>
   </div>
@@ -22,6 +24,8 @@ import { ElConfigProvider } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Navigation from './components/Navigation.vue'
+// Email binding is temporarily disabled.
+// import EmailBindPrompt from './components/EmailBindPrompt.vue'
 import MaintenanceOverlay from './components/MaintenanceOverlay.vue'
 import { useWalletStore } from '@/stores/wallet'
 import { ensureReferralBound } from '@/utils/wallet'

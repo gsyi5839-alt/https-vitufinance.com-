@@ -7,11 +7,15 @@ import adminRoutes from './src/adminRoutes.js';
 import marketRoutes from './src/routes/marketRoutes.js';
 import { createPlatformRoutes } from './src/routes/platformRoutes.js';
 import { createUserRoutes } from './src/routes/userRoutes.js';
+// Email binding is temporarily disabled.
+// import { createUserEmailRoutes, initUserEmailSchema } from './src/routes/userEmailRoutes.js';
 import { createHistoryRoutes } from './src/routes/historyRoutes.js';
 import { createMonitoringRoutes, initUserBehaviorTable } from './src/routes/monitoringRoutes.js';
 import { createAnnouncementRoutes, initAnnouncementTable } from './src/routes/announcementRoutes.js';
 import { createSystemRoutes } from './src/routes/systemRoutes.js';
 import { createAdminCompatRoutes } from './src/routes/adminCompatRoutes.js';
+// Email sending is temporarily disabled.
+// import { createAdminEmailRoutes } from './src/routes/adminEmailRoutes.js';
 import { createCheckinRoutes, initCheckinTable } from './src/routes/checkinRoutes.js';
 import { createPledgeRoutes, initPledgeTables } from './src/routes/pledgeRoutes.js';
 import { createErrorLogRoutes } from './src/routes/errorLogRoutes.js';
@@ -258,6 +262,10 @@ initUserBehaviorTable(dbQuery);
 initCheckinTable(dbQuery);
 initPledgeTables(dbQuery);
 initSafeTable(dbQuery);
+// Email binding schema initialization is temporarily disabled.
+// initUserEmailSchema(dbQuery).catch((error) => {
+//     console.error('[DB] 初始化邮箱绑定表结构失败:', error.message);
+// });
 app.use('/api/announcements', createAnnouncementRoutes({ dbQuery }));
 
 // ==================== 用户钱包余额管理 API ====================
@@ -283,6 +291,8 @@ const {
 } = brokerLevelService;
 
 app.use('/api/user', createUserRoutes({ dbQuery }));
+// Email binding routes are temporarily disabled.
+// app.use('/api/user/email', createUserEmailRoutes({ dbQuery }));
 
 app.use('/api/platform', createPlatformRoutes({
     dbQuery,
@@ -290,6 +300,8 @@ app.use('/api/platform', createPlatformRoutes({
     getPageTotalAmount
 }));
 app.use('/api/admin', createAdminCompatRoutes({ dbQuery, manualProcessDividends }));
+// Admin email routes are temporarily disabled.
+// app.use('/api/admin/email', createAdminEmailRoutes({ dbQuery }));
 app.use('/api/checkin', createCheckinRoutes({ dbQuery }));
 app.use('/api/pledge', createPledgeRoutes({ dbQuery }));
 app.use('/api', createErrorLogRoutes({ logError, ErrorLevel, ErrorSource }));

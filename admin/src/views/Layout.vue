@@ -133,6 +133,14 @@
             <template #title>公告管理</template>
           </el-menu-item>
 
+          <!-- 邮件群发暂时停用 -->
+          <!--
+          <el-menu-item index="/emails">
+            <el-icon><Message /></el-icon>
+            <template #title>邮件群发</template>
+          </el-menu-item>
+          -->
+
           <!-- 资质文件 -->
           <el-menu-item index="/documents">
             <el-icon><Document /></el-icon>
@@ -438,6 +446,7 @@ import {
   Download,
   Upload,
   Bell,
+  // Message,
   Monitor,
   Share,
   Fold,

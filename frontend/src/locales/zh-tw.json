@@ -3,6 +3,17 @@
     "connectWallet": "連接錢包",
     "language": "繁體中文"
   },
+  "emailBind": {
+    "title": "綁定郵箱",
+    "desc": "請綁定您的郵箱地址，平台將用於發送帳戶與服務通知。",
+    "emailLabel": "郵箱",
+    "emailPlaceholder": "請輸入郵箱地址",
+    "emailRequired": "請輸入郵箱地址",
+    "emailInvalid": "請輸入有效的郵箱地址",
+    "submit": "綁定郵箱",
+    "success": "郵箱綁定成功",
+    "failed": "郵箱綁定失敗"
+  },
   "onePage": {
     "emailText": "聯繫我們獲取更多信息",
     "items": [
@@ -580,6 +591,7 @@
   "depositModal": {
     "title": "充值",
     "selectNetwork": "選擇網絡",
+    "selectCurrency": "選擇付款幣種",
     "lowGasFee": "低 Gas 費",
     "mainnet": "主網",
     "enterAmount": "輸入金額",

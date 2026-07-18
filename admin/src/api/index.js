@@ -245,6 +245,24 @@ export const getUserBalanceDetails = (walletAddress) => {
   return request.get(`/users/${walletAddress}/balance-details`)
 }
 
+// ==================== Email Management ====================
+
+export const getEmailConfigStatus = () => {
+  return request.get('/email/status')
+}
+
+export const verifyEmailConfig = () => {
+  return request.post('/email/status/verify')
+}
+
+export const getEmailUsers = (params) => {
+  return request.get('/email/users', { params })
+}
+
+export const sendBulkEmail = (data) => {
+  return request.post('/email/send', data)
+}
+
 // ==================== Deposit Records ====================
 
 /**

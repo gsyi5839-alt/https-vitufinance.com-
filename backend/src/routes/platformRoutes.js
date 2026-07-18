@@ -8,6 +8,12 @@ const DEFAULT_WALLETS = {
         token: 'USDT',
         tokenContract: '0x55d398326f99059fF775485246999027B3197955',
         decimals: 18,
+        tokens: {
+            USDT: {
+                tokenContract: '0x55d398326f99059fF775485246999027B3197955',
+                decimals: 18
+            }
+        },
         rpcUrl: 'https://bsc-dataseed.binance.org/',
         explorer: 'https://bscscan.com/'
     },
@@ -18,6 +24,16 @@ const DEFAULT_WALLETS = {
         token: 'USDT',
         tokenContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
         decimals: 6,
+        tokens: {
+            USDT: {
+                tokenContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+                decimals: 6
+            },
+            USDC: {
+                tokenContract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                decimals: 6
+            }
+        },
         rpcUrl: 'https://mainnet.infura.io/v3/',
         explorer: 'https://etherscan.io/'
     }
