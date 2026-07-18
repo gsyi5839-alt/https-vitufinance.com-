@@ -1,0 +1,1 @@
+import{O as a,T as s,V as e}from"./element-plus-CJ-gg7iJ.js";import{l as o}from"./index-Cfy0S1jV.js";var r={class:"dashboard-container"},d=o({__name:"Dashboard",setup:o=>(o,d)=>(e(),a("div",r,[...d[0]||(d[0]=[s("h1",null,"Dashboard",-1)])]))},[["__scopeId","data-v-30c229b9"]]);export{d as default};

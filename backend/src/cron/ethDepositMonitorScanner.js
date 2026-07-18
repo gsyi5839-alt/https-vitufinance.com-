@@ -73,7 +73,7 @@ async function scanNewDeposits() {
     resetHistoryPrunedErrors();
 
     if (logs.length > 0) {
-      console.log(`[ETH-DepositMonitor] 📝 Found ${logs.length} transfers to platform wallet`);
+      console.log(`[ETH-DepositMonitor] 📝 Found ${logs.length} token transfers to platform wallet`);
       for (const log of logs) {
         const transfer = parseTransferLog(log);
         await processDeposit(transfer);
@@ -123,8 +123,8 @@ async function startEthDepositMonitor() {
   console.log(`[ETH-DepositMonitor] 🌐 RPC nodes: ${ETH_RPC_URLS.length} backup nodes`);
   console.log(`[ETH-DepositMonitor] 🔄 Auto-reset: when lag > ${MAX_BLOCK_LAG} blocks or ${MAX_HISTORY_PRUNED_ERRORS} consecutive history errors`);
   console.log(`[ETH-DepositMonitor] 💰 Platform wallet: ${getPlatformWallet()}`);
-  console.log(`[ETH-DepositMonitor] 💵 Minimum deposit: ${MIN_DEPOSIT_AMOUNT} USDT`);
-  console.log(`[ETH-DepositMonitor] 🔢 USDT decimals: ${USDT_DECIMALS} (ETH ERC-20)`);
+  console.log(`[ETH-DepositMonitor] 💵 Minimum deposit: ${MIN_DEPOSIT_AMOUNT} USDT/USDC`);
+  console.log(`[ETH-DepositMonitor] 🔢 Stablecoin decimals: ${USDT_DECIMALS} (ETH ERC-20)`);
 
   scanNewDeposits().catch((err) => {
     console.error('[ETH-DepositMonitor] ❌ Initial scan failed:', err.message);

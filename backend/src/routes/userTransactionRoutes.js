@@ -15,20 +15,10 @@ import {
     normalizeToken,
     rawAmountToNumber
 } from '../utils/depositTokenConfig.js';
+import { requestJsonRpcWithFallback } from '../utils/rpcClient.js';
 
 async function getTransactionReceipt(txHash, chainConfig) {
-    const response = await fetch(chainConfig.rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_getTransactionReceipt',
-            params: [txHash]
-        })
-    });
-
-    return response.json();
+    return requestJsonRpcWithFallback(chainConfig, 'eth_getTransactionReceipt', [txHash]);
 }
 
 async function verifyChainTransaction(txHash, expectedFrom, expectedTo, expectedAmount, chain = 'BSC', token = 'USDT') {

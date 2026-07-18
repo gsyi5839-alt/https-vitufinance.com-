@@ -2,6 +2,7 @@ import { query as dbQuery } from '../../db.js';
 import { getPlatformWalletAddressByChain } from '../utils/platformWallet.js';
 import {
   ETH_RPC_URLS,
+  ETH_DEPOSIT_TOKENS,
   USDT_CONTRACT,
   TRANSFER_TOPIC,
   MAX_RETRIES,
@@ -86,21 +87,23 @@ async function jsonRpcRequest(method, params, retryCount = 0) {
   } catch (error) {
     const consecutiveErrors = incrementConsecutiveErrors();
 
-    if (error.code === -32005 || error.message?.includes('limit exceeded')) {
+    const errorMsg = error.message || String(error);
+    if (error.code === -32005 || errorMsg.includes('limit exceeded')) {
       console.error(`[ETH-DepositMonitor] ⚠️ RPC rate limited (node: ${rpcUrl})`);
-
-      if (retryCount < MAX_RETRIES) {
-        const delay = BASE_RETRY_DELAY * Math.pow(2, retryCount);
-        console.log(`[ETH-DepositMonitor] ⏳ Retrying in ${delay / 1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
-        await sleep(delay);
-        return jsonRpcRequest(method, params, retryCount + 1);
-      }
-
-      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-        switchToNextRpc();
-      }
     } else {
-      console.error('[ETH-DepositMonitor] ❌ RPC request failed:', error.message || error);
+      console.error('[ETH-DepositMonitor] ❌ RPC request failed:', errorMsg);
+    }
+
+    if (retryCount < MAX_RETRIES) {
+      switchToNextRpc();
+      const delay = Math.min(BASE_RETRY_DELAY, 2000 * (retryCount + 1));
+      console.log(`[ETH-DepositMonitor] ⏳ Trying next node in ${delay / 1000}s... (${retryCount + 1}/${MAX_RETRIES})`);
+      await sleep(delay);
+      return jsonRpcRequest(method, params, retryCount + 1);
+    }
+
+    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      switchToNextRpc();
     }
 
     throw error;
@@ -113,19 +116,40 @@ async function getLatestBlockNumber() {
 }
 
 async function getUsdtTransferLogs(fromBlock, toBlock) {
-  const platformWallet = getPlatformWallet();
-  const params = [{
-    fromBlock: `0x${fromBlock.toString(16)}`,
-    toBlock: `0x${toBlock.toString(16)}`,
-    address: USDT_CONTRACT,
-    topics: [
-      TRANSFER_TOPIC,
-      null,
-      `0x000000000000000000000000${platformWallet.slice(2)}`
-    ]
-  }];
+  return getTokenTransferLogs(fromBlock, toBlock);
+}
 
-  return await jsonRpcRequest('eth_getLogs', params);
+async function getTokenTransferLogs(fromBlock, toBlock) {
+  const platformWallet = getPlatformWallet();
+  const logs = [];
+
+  for (const [token, config] of Object.entries(ETH_DEPOSIT_TOKENS)) {
+    const params = [{
+      fromBlock: `0x${fromBlock.toString(16)}`,
+      toBlock: `0x${toBlock.toString(16)}`,
+      address: config.contract || USDT_CONTRACT,
+      topics: [
+        TRANSFER_TOPIC,
+        null,
+        `0x000000000000000000000000${platformWallet.slice(2)}`
+      ]
+    }];
+
+    const tokenLogs = await jsonRpcRequest('eth_getLogs', params);
+    tokenLogs.forEach((log) => {
+      logs.push({
+        ...log,
+        depositToken: token,
+        depositDecimals: config.decimals
+      });
+    });
+  }
+
+  return logs.sort((a, b) => {
+    const blockDiff = parseInt(a.blockNumber, 16) - parseInt(b.blockNumber, 16);
+    if (blockDiff !== 0) return blockDiff;
+    return parseInt(a.logIndex || '0x0', 16) - parseInt(b.logIndex || '0x0', 16);
+  });
 }
 
 export {
@@ -136,5 +160,6 @@ export {
   jsonRpcRequest,
   getLatestBlockNumber,
   getUsdtTransferLogs,
+  getTokenTransferLogs,
   getConsecutiveErrors
 };

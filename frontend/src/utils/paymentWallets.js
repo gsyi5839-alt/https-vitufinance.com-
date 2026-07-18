@@ -32,7 +32,7 @@ const DEFAULT_PAYMENT_WALLET_CONFIGS = {
         decimals: 6
       }
     },
-    rpcUrl: 'https://mainnet.infura.io/v3/',
+    rpcUrl: 'https://ethereum-rpc.publicnode.com',
     explorer: 'https://etherscan.io/'
   }
 }

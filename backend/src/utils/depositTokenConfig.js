@@ -2,6 +2,11 @@ export const CHAIN_CONFIGS = {
     BSC: {
         name: 'BNB Smart Chain',
         rpcUrl: 'https://bsc-dataseed.binance.org/',
+        rpcUrls: [
+            'https://bsc-dataseed.binance.org/',
+            'https://bsc-rpc.publicnode.com',
+            'https://bsc.publicnode.com'
+        ],
         usdtContract: '0x55d398326f99059fF775485246999027B3197955',
         decimals: 18,
         tokens: {
@@ -14,7 +19,15 @@ export const CHAIN_CONFIGS = {
     },
     ETH: {
         name: 'Ethereum Mainnet',
-        rpcUrl: 'https://eth.llamarpc.com',
+        rpcUrl: 'https://ethereum-rpc.publicnode.com',
+        rpcUrls: [
+            'https://ethereum-rpc.publicnode.com',
+            'https://eth.drpc.org',
+            'https://eth.api.onfinality.io/public',
+            'https://1rpc.io/eth',
+            'https://ethereum.publicnode.com',
+            'https://eth.llamarpc.com'
+        ],
         usdtContract: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
         decimals: 6,
         tokens: {

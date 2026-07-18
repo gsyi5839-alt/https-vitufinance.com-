@@ -9,9 +9,11 @@ function parseTransferLog(log) {
   const from = '0x' + log.topics[1].slice(26);
   const to = '0x' + log.topics[2].slice(26);
   const rawAmount = BigInt(log.data);
+  const token = log.depositToken || 'USDT';
+  const decimals = log.depositDecimals || USDT_DECIMALS;
   // FIX: use full-precision decimal formatting instead of Number() division,
   // which loses precision for large values (ETH USDT has 6 decimals).
-  const amount = parseFloat(formatUnits(rawAmount, USDT_DECIMALS));
+  const amount = parseFloat(formatUnits(rawAmount, decimals));
   const txHash = log.transactionHash;
   const blockNumber = parseInt(log.blockNumber, 16);
 
@@ -19,13 +21,14 @@ function parseTransferLog(log) {
     from: from.toLowerCase(),
     to: to.toLowerCase(),
     amount,
+    token,
     txHash,
     blockNumber
   };
 }
 
 async function processDeposit(transfer) {
-  const { from, amount, txHash, blockNumber } = transfer;
+  const { from, amount, token, txHash, blockNumber } = transfer;
 
   try {
     const existing = await dbQuery(
@@ -39,19 +42,19 @@ async function processDeposit(transfer) {
     }
 
     if (amount < MIN_DEPOSIT_AMOUNT) {
-      console.log(`[ETH-DepositMonitor] ⚠️  Amount too small (${amount} USDT < ${MIN_DEPOSIT_AMOUNT} USDT), from: ${from}`);
+      console.log(`[ETH-DepositMonitor] ⚠️  Amount too small (${amount} ${token} < ${MIN_DEPOSIT_AMOUNT} ${token}), from: ${from}`);
       await dbQuery(
         `INSERT INTO deposit_records
          (wallet_address, amount, token, network, tx_hash, status, created_at, remark)
-         VALUES (?, ?, 'USDT', 'ETH', ?, 'failed', NOW(), 'Amount below minimum requirement')`,
-        [from, amount, txHash]
+         VALUES (?, ?, ?, 'ETH', ?, 'failed', NOW(), 'Amount below minimum requirement')`,
+        [from, amount, token, txHash]
       );
       return;
     }
 
     console.log('[ETH-DepositMonitor] 🔔 New ETH deposit detected:', {
       from,
-      amount: `${amount} USDT`,
+      amount: `${amount} ${token}`,
       txHash,
       block: blockNumber
     });
@@ -59,12 +62,12 @@ async function processDeposit(transfer) {
     await dbQuery(
       `INSERT INTO deposit_records
        (wallet_address, amount, token, network, tx_hash, status, created_at, completed_at)
-       VALUES (?, ?, 'USDT', 'ETH', ?, 'completed', NOW(), NOW())`,
-      [from, amount, txHash]
+       VALUES (?, ?, ?, 'ETH', ?, 'completed', NOW(), NOW())`,
+      [from, amount, token, txHash]
     );
 
     await creditUserDeposit(from, amount);
-    console.log(`[ETH-DepositMonitor] ✅ Deposit processed: ${amount} USDT → ${from}`);
+    console.log(`[ETH-DepositMonitor] ✅ Deposit processed: ${amount} ${token} -> ${from}`);
   } catch (error) {
     console.error(`[ETH-DepositMonitor] ❌ Failed to process deposit (${txHash}):`, error.message);
     await logDepositError(txHash, error);
