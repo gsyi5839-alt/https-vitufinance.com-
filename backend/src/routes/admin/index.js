@@ -21,7 +21,7 @@
  */
 import express from 'express';
 import compression from 'compression';
-import { authMiddleware } from '../../middleware/security.js';
+import { authMiddleware } from './shared.js';
 
 // Import route modules
 import authRoutes from './authRoutes.js';

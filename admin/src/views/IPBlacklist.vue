@@ -29,6 +29,7 @@
         <div class="stat-info">
           <div class="stat-label">已封禁IP</div>
           <div class="stat-value">{{ stats.blockedIPs }}</div>
+          <div class="stat-extra">持久 {{ stats.persistentBlockedIPs }} / 临时 {{ stats.temporaryBlockedIPs }}</div>
         </div>
       </el-card>
 
@@ -79,6 +80,14 @@
               <template #default="{ row }">
                 <el-tag v-if="row.permanent" type="danger" size="small">永久</el-tag>
                 <span v-else class="remaining-time">{{ row.remainingTime }}s</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="来源" width="110">
+              <template #default="{ row }">
+                <el-tag :type="getBlockSourceTag(row.source)" size="small">
+                  {{ getBlockSourceLabel(row.source) }}
+                </el-tag>
               </template>
             </el-table-column>
 
@@ -310,6 +319,8 @@ const activeTab = ref('blocked')
 // Statistics
 const stats = reactive({
   blockedIPs: 0,
+  persistentBlockedIPs: 0,
+  temporaryBlockedIPs: 0,
   todayAttacks: 0,
   criticalAttacks: 0,
   trackedIPs: 0
@@ -361,6 +372,8 @@ const fetchStats = async () => {
     if (res.success) {
       const data = res.data
       stats.blockedIPs = data.ipProtection?.blockedIPs || 0
+      stats.persistentBlockedIPs = data.ipProtection?.persistentBlockedIPs || 0
+      stats.temporaryBlockedIPs = data.ipProtection?.temporaryBlockedIPs || 0
       stats.trackedIPs = data.ipProtection?.trackedIPs || 0
       stats.todayAttacks = data.attacks?.total || 0
       stats.criticalAttacks = (data.attacks?.critical || 0) + (data.attacks?.high || 0)
@@ -644,6 +657,28 @@ const getSeverityLabel = (severity) => {
 }
 
 /**
+ * Get block source tag color
+ */
+const getBlockSourceTag = (source) => {
+  const map = {
+    temporary: 'warning',
+    persistent: 'danger'
+  }
+  return map[source] || 'info'
+}
+
+/**
+ * Get block source label
+ */
+const getBlockSourceLabel = (source) => {
+  const map = {
+    temporary: '临时',
+    persistent: '持久'
+  }
+  return map[source] || '未知'
+}
+
+/**
  * Handle tab change
  */
 const handleTabChange = (tab) => {
@@ -766,6 +801,13 @@ onUnmounted(() => {
       font-weight: 700;
       color: var(--admin-text-primary);
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-extra {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--admin-text-secondary);
+      white-space: nowrap;
     }
   }
   
@@ -960,4 +1002,3 @@ html.dark {
   }
 }
 </style>
-

@@ -164,6 +164,7 @@ import TelegramPopup from '../components/TelegramPopup.vue'
 import FacebookPopup from '../components/FacebookPopup.vue'
 import YouTubePopup from '../components/YouTubePopup.vue'
 import { useWalletStore } from '@/stores/wallet'
+import { connectWallet, detectWalletType } from '@/utils/wallet'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const { t } = useI18n()
@@ -220,12 +221,12 @@ const saveSignatureTimestamp = (walletAddress) => {
  * Connect wallet and get address
  */
 const connectWalletAndGetAddress = async () => {
-  if (!window.ethereum) throw new Error('请在钱包浏览器中打开')
-  
-  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-  if (!accounts || accounts.length === 0) throw new Error('未获取到钱包地址')
-  
-  return accounts[0]
+  const result = await connectWallet()
+  if (!result?.success || !result.address) {
+    throw new Error(result?.error || '未获取到钱包地址')
+  }
+
+  return result.address
 }
 
 /**
@@ -330,9 +331,41 @@ const handleSignatureConfirm = async () => {
     console.log('[Signature] Wallet connected:', walletAddress)
     connectedWallet.value = walletAddress
     
-    walletStore.setWallet(walletAddress, 'TokenPocket')
+    if (!walletStore.isConnected || walletStore.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      walletStore.setWallet(walletAddress, detectWalletType())
+    }
     
-    await requestSignature(walletAddress)
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' }).catch(() => '')
+    const qs = new URLSearchParams({
+      wallet_address: walletAddress,
+      ...(chainId ? { chain_id: chainId } : {})
+    }).toString()
+    const challengeResp = await fetch(`/api/auth/challenge?${qs}`, { credentials: 'include' })
+    const challenge = await challengeResp.json().catch(() => ({}))
+    if (!challenge?.success || !challenge?.message) {
+      throw new Error(challenge?.message || '获取签名挑战失败')
+    }
+
+    const signature = await window.ethereum.request({
+      method: 'personal_sign',
+      params: [challenge.message, walletAddress]
+    })
+
+    const verifyResp = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ wallet_address: walletAddress, message: challenge.message, signature })
+    })
+    const verified = await verifyResp.json().catch(() => ({}))
+    if (!verified?.success || !verified?.token) {
+      throw new Error(verified?.message || '签名验证失败')
+    }
+
+    const expMs = verified.expiresAt ? Date.parse(verified.expiresAt) : (Date.now() + SIGNATURE_VALIDITY_MS)
+    localStorage.setItem('wallet_auth_token', verified.token)
+    localStorage.setItem('wallet_auth_token_exp', String(expMs))
+    localStorage.setItem('wallet_auth_wallet', walletAddress.toLowerCase())
     
     saveSignatureTimestamp(walletAddress)
     isAuthenticated.value = true
@@ -380,7 +413,7 @@ const initSignatureAuth = async () => {
       if (SIGNATURE_VALIDITY_MS > 0 && isSignatureValid(walletAddress)) {
         console.log('[Signature] Valid cache, granting access')
         isAuthenticated.value = true
-        walletStore.setWallet(walletAddress, 'TokenPocket')
+        walletStore.setWallet(walletAddress, detectWalletType())
         return
       }
     }

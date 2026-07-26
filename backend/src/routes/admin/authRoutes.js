@@ -15,7 +15,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { hashPassword, verifyPassword, sanitizeString } from '../../security/index.js';
-import { loginLimiter, authMiddleware } from '../../middleware/security.js';
+import { loginLimiter } from '../../middleware/security.js';
+import { authMiddleware } from './shared.js';
 
 const router = express.Router();
 
@@ -251,4 +252,3 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 });
 
 export default router;
-

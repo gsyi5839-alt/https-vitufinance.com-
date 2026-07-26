@@ -21,7 +21,7 @@ import { query as dbQuery } from '../db.js';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { hashPassword, verifyPassword, sanitizeString, secureLog } from './security/index.js';
-import { loginLimiter } from './middleware/security.js';
+import { loginLimiter, unblockTemporaryIP } from './middleware/security.js';
 import { getErrorStats, resolveError, resolveSimilarErrors } from './utils/errorLogger.js';
 // Security monitoring imports
 import { 
@@ -8411,6 +8411,7 @@ router.post('/security/block-ip', authMiddleware, async (req, res) => {
     const blockReason = reason || '管理员手动封禁';
     
     securityBlockIP(ip, blockDuration, blockReason, !!permanent);
+    unblockTemporaryIP(ip);
     
     secureLog('管理员封禁IP', { 
       ip, 
@@ -8440,6 +8441,7 @@ router.post('/security/unblock-ip', authMiddleware, async (req, res) => {
     }
     
     unblockIP(ip);
+    unblockTemporaryIP(ip);
     
     secureLog('管理员解封IP', { ip, admin: req.admin?.username });
     
@@ -8477,6 +8479,7 @@ router.post('/security/whitelist', authMiddleware, async (req, res) => {
     }
     
     addToWhitelist(ip);
+    unblockTemporaryIP(ip);
     
     // Also save to database if dbQuery available
     try {

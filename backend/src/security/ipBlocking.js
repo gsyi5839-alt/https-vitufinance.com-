@@ -63,6 +63,7 @@ function unblockIP(ip) {
 function addToWhitelist(ip) {
     whitelistedIPs.add(ip);
     blockedIPs.delete(ip);
+    removeBlockedIPFromDatabase(ip);
     console.log(`[IPProtection] IP whitelisted: ${ip}`);
 }
 
@@ -109,6 +110,11 @@ async function loadBlockedIPsFromDatabase() {
         const rows = await dbQuery('SELECT * FROM blocked_ips WHERE is_permanent = 1 OR (blocked_at + INTERVAL duration_ms/1000 SECOND) > NOW()');
 
         for (const row of rows) {
+            if (whitelistedIPs.has(row.ip_address)) {
+                await removeBlockedIPFromDatabase(row.ip_address);
+                continue;
+            }
+
             blockedIPs.set(row.ip_address, {
                 blockedAt: new Date(row.blocked_at).getTime(),
                 duration: row.duration_ms === -1 ? Infinity : row.duration_ms,
@@ -147,6 +153,47 @@ async function initBlockedIPsTable() {
     }
 }
 
+async function initWhitelistTable() {
+    const dbQuery = getDbQuery();
+    if (!dbQuery) return;
+
+    try {
+        await dbQuery(`
+            CREATE TABLE IF NOT EXISTS ip_whitelist (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL UNIQUE,
+                description VARCHAR(255) DEFAULT '',
+                added_by VARCHAR(100) DEFAULT 'system',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_ip_address (ip_address)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('[IPProtection] ip_whitelist table initialized');
+    } catch (error) {
+        console.error('[IPProtection] Error initializing ip_whitelist table:', error.message);
+    }
+}
+
+async function loadWhitelistFromDatabase() {
+    const dbQuery = getDbQuery();
+    if (!dbQuery) return;
+
+    try {
+        const rows = await dbQuery('SELECT ip_address FROM ip_whitelist');
+
+        for (const row of rows) {
+            if (row.ip_address) {
+                whitelistedIPs.add(row.ip_address);
+                blockedIPs.delete(row.ip_address);
+            }
+        }
+
+        console.log(`[IPProtection] Loaded ${rows.length} whitelisted IPs from database`);
+    } catch (error) {
+        console.error('[IPProtection] Error loading IP whitelist:', error.message);
+    }
+}
+
 export {
     isBlocked,
     blockIP,
@@ -154,5 +201,7 @@ export {
     addToWhitelist,
     removeFromWhitelist,
     initBlockedIPsTable,
-    loadBlockedIPsFromDatabase
+    loadBlockedIPsFromDatabase,
+    initWhitelistTable,
+    loadWhitelistFromDatabase
 };

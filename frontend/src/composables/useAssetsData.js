@@ -81,6 +81,7 @@ export function useAssetsData() {
   const quantifyRecords = ref([])
   const referralRecords = ref([])
   const teamRewards = ref([])
+  const transactionRecords = ref([])
   
   // 保险箱状态
   const safeStatus = ref({
@@ -120,6 +121,10 @@ export function useAssetsData() {
     
     teamRewards.value.forEach(record => {
       records.push({ ...record, type: 'team_reward', timestamp: new Date(record.created_at).getTime() })
+    })
+
+    transactionRecords.value.forEach(record => {
+      records.push({ ...record, type: 'margin_refund', timestamp: new Date(record.created_at).getTime() })
     })
     
     // 按时间倒序排序
@@ -330,6 +335,26 @@ export function useAssetsData() {
       console.error('[Assets] 获取团队奖励记录失败:', error)
     }
   }
+
+  /**
+   * 获取保证金退还等交易历史记录
+   */
+  async function fetchTransactionRecords() {
+    if (!walletStore.isConnected || !walletStore.walletAddress) return
+    
+    try {
+      const data = await cachedFetch(
+        `/api/transaction/history?wallet_address=${walletStore.walletAddress}`,
+        30000
+      )
+      
+      if (data.success && Array.isArray(data.data)) {
+        transactionRecords.value = data.data
+      }
+    } catch (error) {
+      console.error('[Assets] 获取交易历史失败:', error)
+    }
+  }
   
   /**
    * 获取保险箱状态
@@ -376,6 +401,7 @@ export function useAssetsData() {
         fetchQuantifyRecords(),
         fetchReferralRecords(),
         fetchTeamRewards(),
+        fetchTransactionRecords(),
         fetchSafeStatus()
       ])
       
@@ -427,6 +453,7 @@ export function useAssetsData() {
     quantifyRecords,
     referralRecords,
     teamRewards,
+    transactionRecords,
     safeStatus,
     isLoading,
     isRefreshing,
@@ -445,10 +472,10 @@ export function useAssetsData() {
     fetchQuantifyRecords,
     fetchReferralRecords,
     fetchTeamRewards,
+    fetchTransactionRecords,
     fetchSafeStatus,
     refreshAllData,
     initializeData,
     forceRefresh
   }
 }
-

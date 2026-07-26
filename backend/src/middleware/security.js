@@ -153,23 +153,75 @@ export const requestLogger = (req, res, next) => {
 
 // ==================== IP黑名单中间件 ====================
 
-// 内存中的IP黑名单
-const ipBlacklist = new Set();
+// 内存中的临时IP黑名单（业务校验失败触发，不写入 blocked_ips 表）
+const ipBlacklist = new Map();
 
 /**
  * 添加IP到黑名单
  * @param {string} ip - IP地址
  * @param {number} duration - 封禁时长（毫秒），默认1小时
  */
-export function blockIP(ip, duration = 60 * 60 * 1000) {
-    ipBlacklist.add(ip);
-    console.log(`[Security] IP已封禁: ${ip}`);
+export function blockIP(ip, duration = 60 * 60 * 1000, reason = '可疑行为次数过多') {
+    const blockedAt = Date.now();
+    ipBlacklist.set(ip, {
+        blockedAt,
+        duration,
+        reason,
+        permanent: false,
+        source: 'temporary'
+    });
+    console.log(`[Security] IP已临时封禁: ${ip} - ${reason}`);
     
     // 定时解除封禁
     setTimeout(() => {
-        ipBlacklist.delete(ip);
-        console.log(`[Security] IP已解封: ${ip}`);
+        const currentBlock = ipBlacklist.get(ip);
+        if (currentBlock?.blockedAt === blockedAt) {
+            ipBlacklist.delete(ip);
+            console.log(`[Security] IP已自动解封: ${ip}`);
+        }
     }, duration);
+}
+
+/**
+ * 手动解除临时IP黑名单
+ * @param {string} ip - IP地址
+ * @returns {boolean} - 是否解封成功
+ */
+export function unblockTemporaryIP(ip) {
+    const removed = ipBlacklist.delete(ip);
+    suspiciousActivity.delete(ip);
+    if (removed) {
+        console.log(`[Security] IP已手动解除临时封禁: ${ip}`);
+    }
+    return removed;
+}
+
+/**
+ * 获取当前临时封禁IP列表，供管理后台展示
+ */
+export function getTemporaryBlockedIPs() {
+    const now = Date.now();
+    const entries = [];
+
+    for (const [ip, info] of ipBlacklist.entries()) {
+        const remainingTime = Math.max(0, Math.round((info.blockedAt + info.duration - now) / 1000));
+        if (remainingTime <= 0) {
+            ipBlacklist.delete(ip);
+            continue;
+        }
+
+        entries.push({
+            ip,
+            blockedAt: info.blockedAt,
+            duration: info.duration,
+            reason: info.reason,
+            permanent: false,
+            remainingTime,
+            source: info.source || 'temporary'
+        });
+    }
+
+    return entries;
 }
 
 /**
@@ -177,8 +229,11 @@ export function blockIP(ip, duration = 60 * 60 * 1000) {
  */
 export const ipBlacklistMiddleware = (req, res, next) => {
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress;
-    
-    if (ip && ipBlacklist.has(ip)) {
+    const blockInfo = ip ? ipBlacklist.get(ip) : null;
+
+    if (blockInfo && Date.now() > blockInfo.blockedAt + blockInfo.duration) {
+        ipBlacklist.delete(ip);
+    } else if (blockInfo) {
         console.log(`[Security] 被封禁的IP尝试访问: ${ip}`);
         return res.status(403).json({
             success: false,
@@ -210,7 +265,7 @@ export function recordSuspiciousActivity(ip, reason) {
     
     // 如果可疑行为超过阈值，自动封禁
     if (count >= 20) {
-        blockIP(ip, 60 * 60 * 1000); // 封禁1小时
+        blockIP(ip, 60 * 60 * 1000, `可疑行为累计 ${count} 次：${reason}`); // 封禁1小时
         suspiciousActivity.delete(ip);
     }
     
@@ -232,5 +287,7 @@ export default {
     requestLogger,
     ipBlacklistMiddleware,
     blockIP,
+    unblockTemporaryIP,
+    getTemporaryBlockedIPs,
     recordSuspiciousActivity
 };

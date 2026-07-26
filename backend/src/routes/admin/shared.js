@@ -11,7 +11,7 @@ import { query as dbQuery } from '../../../db.js';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { hashPassword, verifyPassword, sanitizeString, secureLog } from '../../security/index.js';
-import { loginLimiter, authMiddleware } from '../../middleware/security.js';
+import { loginLimiter, unblockTemporaryIP } from '../../middleware/security.js';
 import { getErrorStats, resolveError, resolveSimilarErrors } from '../../utils/errorLogger.js';
 import { 
     getSecurityStats, 
@@ -35,6 +35,30 @@ if (!JWT_SECRET) {
   console.error('❌ Error: JWT_SECRET environment variable is required in production');
   process.exit(1);
 }
+
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      message: '未授权，请先登录'
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.admin = decoded;
+    next();
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: 'Token 无效或已过期'
+    });
+  }
+};
 
 // Admin config file path
 const ADMIN_CONFIG_FILE = path.join(__dirname, '../../data/admin_config.json');
@@ -181,6 +205,7 @@ export {
   bruteForceProtectionMiddleware,
   clearLoginAttempts,
   securityBlockIP,
+  unblockTemporaryIP,
   getRecentAttacks,
   getAttackStats,
   unblockIP,
@@ -193,4 +218,3 @@ export {
   getAdminUsers,
   saveAdminUsers
 };
-

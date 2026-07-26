@@ -18,7 +18,9 @@ import {
     addToWhitelist,
     removeFromWhitelist,
     initBlockedIPsTable,
-    loadBlockedIPsFromDatabase
+    loadBlockedIPsFromDatabase,
+    initWhitelistTable,
+    loadWhitelistFromDatabase
 } from './ipBlocking.js';
 import {
     updateReputation,
@@ -44,6 +46,8 @@ export {
     detectAttackPatterns,
     initBlockedIPsTable,
     loadBlockedIPsFromDatabase,
+    initWhitelistTable,
+    loadWhitelistFromDatabase,
     getStatistics,
     getAllBlockedIPs
 };
@@ -62,6 +66,8 @@ export default {
     detectAttackPatterns,
     initBlockedIPsTable,
     loadBlockedIPsFromDatabase,
+    initWhitelistTable,
+    loadWhitelistFromDatabase,
     getStatistics,
     getAllBlockedIPs
 };

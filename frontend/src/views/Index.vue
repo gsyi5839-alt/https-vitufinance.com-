@@ -89,6 +89,7 @@ import { useCryptoMarket } from '@/composables/useCryptoMarket'
 import { CRYPTO_LIST, ICON_PATHS } from '@/utils/constants'
 import { useWalletStore } from '@/stores/wallet'
 import SignatureAuthPopup from '@/components/SignatureAuthPopup.vue'
+import { connectWallet, detectWalletType } from '@/utils/wallet'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const { t } = useI18n()
@@ -161,20 +162,12 @@ const saveSignatureTimestamp = (walletAddress) => {
  * Connect wallet and get account address
  */
 const connectWalletAndGetAddress = async () => {
-  if (!window.ethereum) {
-    throw new Error('请在钱包浏览器中打开')
+  const result = await connectWallet()
+  if (!result?.success || !result.address) {
+    throw new Error(result?.error || '未获取到钱包地址')
   }
-  
-  // Request wallet connection - this will prompt user to connect
-  const accounts = await window.ethereum.request({ 
-    method: 'eth_requestAccounts' 
-  })
-  
-  if (!accounts || accounts.length === 0) {
-    throw new Error('未获取到钱包地址')
-  }
-  
-  return accounts[0]
+
+  return result.address
 }
 
 /**
@@ -292,8 +285,10 @@ const handleSignatureConfirm = async () => {
     console.log('[Signature] Wallet connected:', walletAddress)
     connectedWallet.value = walletAddress
     
-    // Update wallet store
-    walletStore.setWallet(walletAddress, 'TokenPocket')
+    // Update wallet store if the shared connector did not already do it.
+    if (!walletStore.isConnected || walletStore.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      walletStore.setWallet(walletAddress, detectWalletType())
+    }
     
     // Step 2: Obtain a backend-VERIFIED wallet JWT (challenge → sign → verify).
     // SECURITY (C2): previously this only did a local personal_sign and never proved
@@ -384,7 +379,7 @@ const initSignatureAuth = async () => {
       if (SIGNATURE_VALIDITY_MS > 0 && isSignatureValid(walletAddress)) {
         console.log('[Signature] Valid signature cache found, granting access')
         isAuthenticated.value = true
-        walletStore.setWallet(walletAddress, 'TokenPocket')
+        walletStore.setWallet(walletAddress, detectWalletType())
         return
       }
     }

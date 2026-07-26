@@ -10,9 +10,12 @@ import {
     setDbQuery as setIPProtectionDbQuery,
     initBlockedIPsTable,
     loadBlockedIPsFromDatabase,
+    initWhitelistTable,
+    loadWhitelistFromDatabase,
     getStatistics as getIPStats,
     getAllBlockedIPs
 } from './ipProtection.js';
+import { getTemporaryBlockedIPs } from '../middleware/security.js';
 
 import {
     scanRequest as scanForSqlInjection,
@@ -64,11 +67,13 @@ export async function initSecurityModules(queryFn, projectRoot = null) {
     try {
         await Promise.all([
             initBlockedIPsTable(),
+            initWhitelistTable(),
             initAttackLogsTable(),
             initAttackStatsTable(),
             initFileProtectionTable()
         ]);
 
+        await loadWhitelistFromDatabase();
         await loadBlockedIPsFromDatabase();
 
         if (projectRoot) {
@@ -264,9 +269,17 @@ export function additionalSecurityHeadersMiddleware(req, res, next) {
 export function getSecurityStats() {
     const ipStats = getIPStats();
     const attackSummary = getAttackSummary();
+    const persistentIPs = new Set(getAllBlockedIPs().map((item) => item.ip));
+    const temporaryBlockedIPs = getTemporaryBlockedIPs()
+        .filter((item) => !persistentIPs.has(item.ip));
 
     return {
-        ipProtection: ipStats,
+        ipProtection: {
+            ...ipStats,
+            blockedIPs: persistentIPs.size + temporaryBlockedIPs.length,
+            persistentBlockedIPs: persistentIPs.size,
+            temporaryBlockedIPs: temporaryBlockedIPs.length
+        },
         attacks: attackSummary,
         bruteForce: getBruteForceStats()
     };
@@ -276,7 +289,15 @@ export function getSecurityStats() {
  * Get blocked IPs list.
  */
 export function getBlockedIPsList() {
-    return getAllBlockedIPs();
+    const persistentBlocks = getAllBlockedIPs().map((item) => ({
+        ...item,
+        source: item.source || 'persistent'
+    }));
+    const persistentIPs = new Set(persistentBlocks.map((item) => item.ip));
+    const temporaryBlocks = getTemporaryBlockedIPs()
+        .filter((item) => !persistentIPs.has(item.ip));
+
+    return [...persistentBlocks, ...temporaryBlocks];
 }
 
 export {

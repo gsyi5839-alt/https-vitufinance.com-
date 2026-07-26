@@ -55,7 +55,10 @@
   </nav>
 
   <!-- Wallet Alert -->
-  <WalletAlert v-model:visible="showWalletAlertDialog" />
+  <WalletAlert
+    v-model:visible="showWalletAlertDialog"
+    :message="walletAlertMessage"
+  />
 </template>
 
 <script setup>
@@ -85,6 +88,7 @@ const scrollOpacity = ref(0)
 const showLanguageMenu = ref(false)
 const eyeCareMode = ref(false)
 const showWalletAlertDialog = ref(false)
+const walletAlertMessage = ref('Wallet not connected')
 
 // 可选语言列表
 const languages = ref([
@@ -170,14 +174,18 @@ const handleWalletClick = async () => {
       trackWalletConnect(walletStore.walletAddress)
       // 连接成功后，自动绑定推荐关系
       await ensureReferralBound()
+    } else if (result.pending) {
+      console.log('[Navigation] Wallet connection request is pending')
     } else {
       console.error('[Navigation] Connection failed:', result.error)
       // 连接失败时显示提示
+      walletAlertMessage.value = result.error || 'Wallet not connected'
       showWalletAlertDialog.value = true
     }
   } else {
     // 不在 DApp 浏览器中，显示提示
     console.log('[Navigation] Not in DApp browser, showing alert')
+    walletAlertMessage.value = t('signatureAuthPopup.openInWalletBrowser') || 'Please open in wallet browser'
     showWalletAlertDialog.value = true
   }
 }

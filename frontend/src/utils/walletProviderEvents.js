@@ -66,6 +66,11 @@ const handleMissingAccounts = async ({ getCurrentAccount }) => {
     return
   }
 
+  if (walletStore.isConnecting) {
+    console.log('[Wallet] Ignoring empty accounts while connection request is active')
+    return
+  }
+
   const savedAddress = localStorage.getItem('walletAddress')
   if (savedAddress) {
     console.log('[Wallet] Empty accounts but have saved address, waiting...')

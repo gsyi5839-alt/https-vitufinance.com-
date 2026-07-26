@@ -19,6 +19,8 @@ import {
   setupWalletProviderListeners,
   syncWalletAccountState
 } from '@/utils/walletProviderEvents'
+
+let connectWalletInFlight = null
 export {
   getAllBalances,
   getNetworkInfo,
@@ -116,67 +118,95 @@ export const detectWalletType = () => {
  * @returns {Promise<{success: boolean, address?: string, error?: string}>}
  */
 export const connectWallet = async () => {
-  const walletStore = useWalletStore()
-
-  // 检查是否在 DApp 浏览器中
-  if (!isDAppBrowser()) {
-    return {
-      success: false,
-      error: 'Please open in wallet browser (TokenPocket, MetaMask, etc.)'
-    }
+  if (connectWalletInFlight) {
+    return connectWalletInFlight
   }
 
-  try {
-    walletStore.setConnecting(true)
+  const walletStore = useWalletStore()
 
-    const ethereum = window.ethereum
-    const walletType = detectWalletType()
-
-    console.log('[Wallet] Detected wallet type:', walletType)
-
-    // 请求用户授权连接钱包
-    // 使用 eth_requestAccounts 方法请求连接
-    const accounts = await ethereum.request({
-      method: 'eth_requestAccounts'
-    })
-
-    if (accounts && accounts.length > 0) {
-      const address = accounts[0]
-      walletStore.setWallet(address, walletType)
-
+  connectWalletInFlight = (async () => {
+    // 检查是否在 DApp 浏览器中
+    if (!isDAppBrowser()) {
       return {
-        success: true,
-        address: address,
-        walletType: walletType
+        success: false,
+        error: 'Please open in wallet browser (TokenPocket, MetaMask, etc.)'
       }
-    } else {
+    }
+
+    try {
+      walletStore.setConnecting(true)
+
+      const ethereum = window.ethereum
+      const walletType = detectWalletType()
+
+      console.log('[Wallet] Detected wallet type:', walletType)
+
+      // 请求用户授权连接钱包
+      // 使用 eth_requestAccounts 方法请求连接
+      const accounts = await ethereum.request({
+        method: 'eth_requestAccounts'
+      })
+
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0]
+        walletStore.setWallet(address, walletType)
+
+        return {
+          success: true,
+          address: address,
+          walletType: walletType
+        }
+      }
+
       walletStore.setError('No accounts found')
       return {
         success: false,
         error: 'No accounts found'
       }
+    } catch (error) {
+      console.error('[Wallet] Connection error:', error)
+
+      let errorMessage = 'Connection failed'
+      let pending = false
+
+      // 处理用户拒绝连接的情况
+      if (error.code === 4001) {
+        errorMessage = 'User rejected the connection request'
+      } else if (error.code === -32002) {
+        pending = true
+        errorMessage = 'Connection request pending, please check your wallet'
+
+        // Some extension wallets report -32002 while the account was already
+        // authorized in another popup. Re-read accounts before surfacing an error.
+        await new Promise(resolve => setTimeout(resolve, 800))
+        const currentAccount = await getCurrentAccount()
+        if (currentAccount) {
+          const walletType = detectWalletType()
+          walletStore.setWallet(currentAccount, walletType)
+          return {
+            success: true,
+            address: currentAccount,
+            walletType,
+            recoveredFromPending: true
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      walletStore.setError(errorMessage)
+
+      return {
+        success: false,
+        error: errorMessage,
+        pending
+      }
     }
-  } catch (error) {
-    console.error('[Wallet] Connection error:', error)
+  })().finally(() => {
+    connectWalletInFlight = null
+  })
 
-    let errorMessage = 'Connection failed'
-
-    // 处理用户拒绝连接的情况
-    if (error.code === 4001) {
-      errorMessage = 'User rejected the connection request'
-    } else if (error.code === -32002) {
-      errorMessage = 'Connection request pending, please check your wallet'
-    } else if (error.message) {
-      errorMessage = error.message
-    }
-
-    walletStore.setError(errorMessage)
-
-    return {
-      success: false,
-      error: errorMessage
-    }
-  }
+  return connectWalletInFlight
 }
 
 /**
