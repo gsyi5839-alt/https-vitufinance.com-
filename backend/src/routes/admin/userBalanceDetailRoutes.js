@@ -392,6 +392,7 @@ async function appendRewardAndAdminTransactions({ walletAddr, transactions }) {
     const completed = ['completed', 'success'].includes(String(m.status || '').toLowerCase());
     transactions.push({
       id: `margin_refund_${m.id}`,
+      transaction_id: m.id,
       type: 'margin_refund',
       type_cn: '保证金退还',
       amount: completed ? parseFloat(m.amount) : 0,

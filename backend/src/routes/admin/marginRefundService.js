@@ -43,6 +43,14 @@ function normalizeRefundAmount(amount) {
   return refundAmount.toFixed(4);
 }
 
+function normalizeTransactionId(transactionId) {
+  const id = Number(transactionId);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new MarginRefundError('保证金退回记录不合法');
+  }
+  return id;
+}
+
 export async function createMarginRefund({
   walletAddress,
   amount,
@@ -155,6 +163,146 @@ export async function createMarginRefund({
       await connection.rollback();
     } catch (rollbackError) {
       console.error('[MarginRefund] rollback failed:', rollbackError.message);
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function revokeMarginRefund({
+  walletAddress,
+  transactionId,
+  reason,
+  adminId = 0,
+  adminUsername = 'unknown',
+  ipAddress = 'unknown'
+}) {
+  const walletAddr = normalizeWalletAddress(walletAddress);
+  const refundTransactionId = normalizeTransactionId(transactionId);
+  const reasonText = String(reason || '').trim() || 'Revoke mistaken margin refund';
+  const adminName = String(adminUsername || 'unknown').slice(0, 50);
+  const adminUserId = Number.isInteger(Number(adminId)) ? Number(adminId) : 0;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.query("SET time_zone = '+08:00'");
+    await connection.beginTransaction();
+
+    const [refundRows] = await connection.query(
+      `SELECT id, wallet_address, tx_hash, amount, status, description
+       FROM transaction_history
+       WHERE id = ?
+         AND LOWER(wallet_address) = LOWER(?)
+         AND tx_type = 'margin_refund'
+         AND direction = 'in'
+       LIMIT 1
+       FOR UPDATE`,
+      [refundTransactionId, walletAddr]
+    );
+
+    if (!refundRows || refundRows.length === 0) {
+      throw new MarginRefundError('保证金退回记录不存在', 404);
+    }
+
+    const refund = refundRows[0];
+    const refundStatus = String(refund.status || '').toLowerCase();
+    if (refundStatus === 'revoked') {
+      throw new MarginRefundError('该保证金退回已撤回', 409);
+    }
+    if (!['completed', 'success'].includes(refundStatus)) {
+      throw new MarginRefundError('只有已完成的保证金退回可以撤回');
+    }
+
+    const [users] = await connection.query(
+      `SELECT wallet_address, usdt_balance
+       FROM user_balances
+       WHERE LOWER(wallet_address) = LOWER(?)
+       LIMIT 1
+       FOR UPDATE`,
+      [walletAddr]
+    );
+
+    if (!users || users.length === 0) {
+      throw new MarginRefundError('用户不存在', 404);
+    }
+
+    const storedWallet = users[0].wallet_address;
+    const revokeAmount = new Decimal(refund.amount || 0).toFixed(4);
+    const beforeBalance = new Decimal(users[0].usdt_balance || 0);
+
+    if (beforeBalance.lt(revokeAmount)) {
+      throw new MarginRefundError('用户可用 USDT 不足，无法撤回该退回记录');
+    }
+
+    const beforeBalanceText = beforeBalance.toFixed(4);
+    const afterBalanceText = beforeBalance.minus(revokeAmount).toFixed(4);
+    const orderNo = refund.tx_hash || `MR-${String(refund.id).padStart(8, '0')}`;
+    const revokeDescription = `${refund.description || 'Margin Refund'} | Revoked: ${reasonText}`.slice(0, 255);
+
+    const [updateResult] = await connection.query(
+      `UPDATE user_balances
+       SET usdt_balance = ?, updated_at = NOW()
+       WHERE wallet_address = ?`,
+      [afterBalanceText, storedWallet]
+    );
+
+    if (updateResult.affectedRows !== 1) {
+      throw new Error('Failed to revoke margin refund balance');
+    }
+
+    await connection.query(
+      `UPDATE transaction_history
+       SET status = 'revoked', description = ?
+       WHERE id = ?`,
+      [revokeDescription, refund.id]
+    );
+
+    await connection.query(
+      `INSERT INTO balance_logs
+       (wallet_address, change_type, change_amount, balance_before, balance_after, related_id, remark, created_at)
+       VALUES (?, 'admin_adjust', ?, ?, ?, ?, ?, NOW())`,
+      [storedWallet, `-${revokeAmount}`, beforeBalanceText, afterBalanceText, refund.id, `Margin Refund revoked; order=${orderNo}`]
+    );
+
+    await connection.query(
+      `INSERT INTO admin_operation_logs
+       (admin_id, admin_username, operation_type, operation_target, operation_detail, ip_address, created_at)
+       VALUES (?, ?, 'margin_refund_revoke', ?, ?, ?, NOW())`,
+      [
+        adminUserId,
+        adminName,
+        storedWallet,
+        JSON.stringify({
+          wallet_address: storedWallet,
+          order_no: orderNo,
+          transaction_id: refund.id,
+          amount: revokeAmount,
+          before: { usdt: beforeBalanceText },
+          after: { usdt: afterBalanceText },
+          change: { usdt: `-${revokeAmount}` },
+          reason: reasonText
+        }),
+        String(ipAddress || 'unknown').slice(0, 45)
+      ]
+    );
+
+    await connection.commit();
+
+    return {
+      wallet_address: storedWallet,
+      order_no: orderNo,
+      transaction_id: refund.id,
+      amount: revokeAmount,
+      before: { usdt: beforeBalanceText },
+      after: { usdt: afterBalanceText },
+      status: 'revoked'
+    };
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      console.error('[MarginRefundRevoke] rollback failed:', rollbackError.message);
     }
     throw error;
   } finally {

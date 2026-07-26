@@ -9,7 +9,7 @@ import {
 } from './shared.js';
 import userBalanceDetailRoutes from './userBalanceDetailRoutes.js';
 import userBanRoutes from './userBanRoutes.js';
-import { createMarginRefund } from './marginRefundService.js';
+import { createMarginRefund, revokeMarginRefund } from './marginRefundService.js';
 
 const router = express.Router();
 
@@ -212,6 +212,31 @@ router.post('/users/:wallet_address/margin-refund', authMiddleware, async (req, 
     res.status(error.statusCode || 500).json({
       success: false,
       message: error.statusCode ? error.message : '保证金退回失败'
+    });
+  }
+});
+
+router.post('/users/:wallet_address/margin-refund/:transaction_id/revoke', authMiddleware, async (req, res) => {
+  try {
+    const result = await revokeMarginRefund({
+      walletAddress: req.params.wallet_address,
+      transactionId: req.params.transaction_id,
+      reason: req.body?.reason || req.body?.remark,
+      adminId: req.admin?.id || 0,
+      adminUsername: req.admin?.username || 'unknown',
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    });
+
+    res.json({
+      success: true,
+      message: '保证金退回已撤回',
+      data: result
+    });
+  } catch (error) {
+    console.error('撤回保证金退回失败:', error.message);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : '撤回保证金退回失败'
     });
   }
 });

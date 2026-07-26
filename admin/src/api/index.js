@@ -241,6 +241,18 @@ export const refundUserMargin = (walletAddress, data) => {
 }
 
 /**
+ * Revoke a manual margin refund.
+ * Backend: POST /api/admin/users/:wallet_address/margin-refund/:transaction_id/revoke
+ *
+ * @param {string} walletAddress
+ * @param {number|string} transactionId
+ * @param {object} data - { reason?: string }
+ */
+export const revokeUserMarginRefund = (walletAddress, transactionId, data = {}) => {
+  return request.post(`/users/${walletAddress}/margin-refund/${transactionId}/revoke`, data)
+}
+
+/**
  * Diagnose user balance
  * Returns detailed balance calculation breakdown
  */

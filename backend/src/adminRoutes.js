@@ -35,7 +35,7 @@ import { getRecentAttacks, getAttackStats } from './security/attackLogger.js';
 import { unblockIP, addToWhitelist, removeFromWhitelist } from './security/ipProtection.js';
 import { transferUSDT, getAccountAddress, getAccountBalance } from './utils/bscTransferService.js';
 import { MIN_ROBOT_PURCHASE } from './utils/teamMath.js';
-import { createMarginRefund } from './routes/admin/marginRefundService.js';
+import { createMarginRefund, revokeMarginRefund } from './routes/admin/marginRefundService.js';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 
@@ -1116,6 +1116,45 @@ router.post('/users/:wallet_address/margin-refund', authMiddleware, async (req, 
 });
 
 /**
+ * 误操作撤回保证金退回
+ * POST /api/admin/users/:wallet_address/margin-refund/:transaction_id/revoke
+ *
+ * 该接口只供管理系统使用：
+ * - 扣回用户可用 USDT
+ * - 将原 margin_refund 记录标记为 revoked
+ * - 写入 balance_logs 与 admin_operation_logs
+ * - 用户前端历史接口不会返回 revoked 记录
+ */
+router.post('/users/:wallet_address/margin-refund/:transaction_id/revoke', authMiddleware, async (req, res) => {
+  try {
+    const result = await revokeMarginRefund({
+      walletAddress: req.params.wallet_address,
+      transactionId: req.params.transaction_id,
+      reason: req.body?.reason || req.body?.remark,
+      adminId: req.admin?.id || 0,
+      adminUsername: req.admin?.username || 'unknown',
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    });
+
+    console.log(
+      `[Admin MarginRefundRevoke] wallet=${result.wallet_address}, amount=${result.amount}, order=${result.order_no}, operator=${req.admin?.username || 'unknown'}`
+    );
+
+    res.json({
+      success: true,
+      message: '保证金退回已撤回',
+      data: result
+    });
+  } catch (error) {
+    console.error('撤回保证金退回失败:', error.message);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : '撤回保证金退回失败'
+    });
+  }
+});
+
+/**
  * 用户余额诊断
  * GET /api/admin/users/:wallet_address/diagnose
  * 
@@ -1524,6 +1563,7 @@ router.get('/users/:wallet_address/balance-details', authMiddleware, async (req,
       const completed = ['completed', 'success'].includes(String(m.status || '').toLowerCase());
       transactions.push({
         id: `margin_refund_${m.id}`,
+        transaction_id: m.id,
         type: 'margin_refund',
         type_cn: '保证金退还',
         amount: completed ? parseFloat(m.amount) : 0,

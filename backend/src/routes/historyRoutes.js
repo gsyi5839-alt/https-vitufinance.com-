@@ -107,6 +107,7 @@ export function createHistoryRoutes({ dbQuery }) {
                  WHERE LOWER(wallet_address) = LOWER(?)
                    AND tx_type = 'margin_refund'
                    AND direction = 'in'
+                   AND status IN ('completed', 'success')
                  ORDER BY created_at DESC
                  LIMIT ?`,
                 [walletAddr, parseHistoryLimit(limit)]

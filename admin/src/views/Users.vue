@@ -373,8 +373,8 @@
             </el-table-column>
             <el-table-column prop="amount" label="金额" width="120" align="right">
               <template #default="{ row }">
-                <span :class="row.amount >= 0 ? 'amount positive' : 'amount negative'">
-                  {{ row.amount >= 0 ? '+' : '' }}{{ row.amount.toFixed(4) }}
+                <span :class="getTransactionAmountClass(row)">
+                  {{ formatTransactionAmount(row) }}
                 </span>
               </template>
             </el-table-column>
@@ -391,9 +391,24 @@
             </el-table-column>
             <el-table-column prop="status" label="状态" width="80">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'pending' ? 'warning' : 'info'" size="small">
-                  {{ row.status }}
+                <el-tag :type="getTransactionStatusColor(row.status)" size="small">
+                  {{ getTransactionStatusText(row.status) }}
                 </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="80" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="canRevokeMarginRefund(row)"
+                  type="danger"
+                  link
+                  size="small"
+                  :loading="marginRefundRevokeSubmitting"
+                  @click="handleRevokeMarginRefund(row)"
+                >
+                  撤回
+                </el-button>
+                <span v-else>-</span>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="时间" width="160">
@@ -631,7 +646,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, CopyDocument, Loading } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import { getUsers, updateUserBalance, diagnoseUserBalance, getUserBalanceDetails, getUserRobots, banUser, unbanUser, releaseFrozenUsdt, refundUserMargin } from '@/api'
+import { getUsers, updateUserBalance, diagnoseUserBalance, getUserBalanceDetails, getUserRobots, banUser, unbanUser, releaseFrozenUsdt, refundUserMargin, revokeUserMarginRefund } from '@/api'
 
 // 加载状态
 const loading = ref(false)
@@ -671,6 +686,7 @@ const editRules = {
 // 保证金退回
 const marginRefundDialogVisible = ref(false)
 const marginRefundSubmitting = ref(false)
+const marginRefundRevokeSubmitting = ref(false)
 const marginRefundFormRef = ref(null)
 const marginRefundForm = reactive({
   wallet_address: '',
@@ -1024,6 +1040,55 @@ const handleSubmitMarginRefund = async () => {
   }
 }
 
+const getMarginRefundTransactionId = (row) => {
+  if (row.transaction_id) return row.transaction_id
+  const match = String(row.id || '').match(/^margin_refund_(\d+)$/)
+  return match ? match[1] : null
+}
+
+const canRevokeMarginRefund = (row) => {
+  const status = String(row.status || '').toLowerCase()
+  return row.type === 'margin_refund' && ['completed', 'success'].includes(status) && Boolean(getMarginRefundTransactionId(row))
+}
+
+const handleRevokeMarginRefund = async (row) => {
+  if (!balanceDetailsData.value?.user?.wallet_address) return
+
+  const transactionId = getMarginRefundTransactionId(row)
+  if (!transactionId) {
+    ElMessage.error('缺少保证金退回记录ID')
+    return
+  }
+
+  const amount = parseFloat(row.display_amount || row.amount || 0)
+  try {
+    await ElMessageBox.confirm(
+      `确认撤回这笔保证金退回吗？\n订单号：${row.order_no || '-'}\n扣回金额：${amount.toFixed(4)} USDT\n撤回后用户前端不再显示该退回记录。`,
+      '确认撤回保证金退回',
+      { type: 'warning', confirmButtonText: '确认撤回', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+
+  marginRefundRevokeSubmitting.value = true
+  try {
+    const walletAddress = balanceDetailsData.value.user.wallet_address
+    const res = await revokeUserMarginRefund(walletAddress, transactionId)
+    if (res.success) {
+      ElMessage.success('保证金退回已撤回')
+      await fetchUsers()
+      await handleViewBalanceDetails({ wallet_address: walletAddress })
+    } else {
+      ElMessage.error(res.message || '撤回失败')
+    }
+  } catch (error) {
+    console.error('撤回保证金退回失败:', error)
+  } finally {
+    marginRefundRevokeSubmitting.value = false
+  }
+}
+
 /**
  * 查看详情
  */
@@ -1121,6 +1186,36 @@ const getTransactionTypeColor = (type) => {
     admin_adjustment: 'info'
   }
   return colors[type] || 'info'
+}
+
+const getTransactionStatusColor = (status) => {
+  const normalized = String(status || '').toLowerCase()
+  if (['completed', 'success'].includes(normalized)) return 'success'
+  if (normalized === 'pending') return 'warning'
+  if (normalized === 'revoked') return 'danger'
+  return 'info'
+}
+
+const getTransactionStatusText = (status) => {
+  const normalized = String(status || '').toLowerCase()
+  if (['completed', 'success'].includes(normalized)) return '已完成'
+  if (normalized === 'pending') return '待处理'
+  if (normalized === 'revoked') return '已撤回'
+  return status || '-'
+}
+
+const isRevokedTransaction = (row) => String(row.status || '').toLowerCase() === 'revoked'
+
+const getTransactionAmountClass = (row) => {
+  if (isRevokedTransaction(row)) return 'amount revoked'
+  return row.amount >= 0 ? 'amount positive' : 'amount negative'
+}
+
+const formatTransactionAmount = (row) => {
+  const amount = isRevokedTransaction(row)
+    ? parseFloat(row.display_amount || row.amount || 0)
+    : parseFloat(row.amount || 0)
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(4)}`
 }
 
 const getRobotTypeName = (type) => {
@@ -1243,6 +1338,11 @@ onMounted(() => {
   
   &.negative {
     color: #F56C6C;
+  }
+
+  &.revoked {
+    color: #909399;
+    text-decoration: line-through;
   }
 }
 
