@@ -600,24 +600,6 @@
                         </div>
                       </div>
                     </template>
-
-                    <!-- 保证金退还记录 -->
-                    <template v-else-if="record.type === 'margin_refund'">
-                      <div class="tx-card-header">
-                        <span class="tx-type margin-refund">保证金退还</span>
-                        <span class="tx-status" :class="record.status">{{ getStatusText(record.status) }}</span>
-                      </div>
-                      <div class="tx-card-body">
-                        <div class="tx-info">
-                          <div class="tx-address">{{ record.description || formatWalletAddress(record.wallet_address) }}</div>
-                          <div class="tx-time">{{ formatDateTime(record.created_at) }}</div>
-                        </div>
-                        <div class="tx-amount-wrap">
-                          <div class="tx-amount deposit">+{{ parseFloat(record.amount).toFixed(4) }}</div>
-                          <div class="tx-currency">{{ record.token || 'USDT' }}</div>
-                        </div>
-                      </div>
-                    </template>
                     
                     <!-- 团队奖励记录 -->
                     <template v-else-if="record.type === 'team_reward'">
@@ -902,7 +884,6 @@ const quantifyRecords = ref([]) // 量化收益记录
 const referralRecords = ref([]) // 推荐奖励记录
 const teamRewards = ref([]) // 团队奖励记录
 const exchangeRecords = ref([]) // 闪兑记录（WLD <-> USDT）
-const transactionRecords = ref([]) // 交易历史记录（保证金退还等）
 
 // 闪兑相关状态
 const exchangeWldPrice = ref(0) // 闪兑用的 WLD 价格
@@ -1033,15 +1014,6 @@ const allUsdtRecords = computed(() => {
     records.push({
       ...record,
       type: 'exchange',
-      timestamp: new Date(record.created_at).getTime()
-    })
-  })
-
-  // 添加保证金退还记录
-  transactionRecords.value.forEach(record => {
-    records.push({
-      ...record,
-      type: 'margin_refund',
       timestamp: new Date(record.created_at).getTime()
     })
   })
@@ -1368,7 +1340,6 @@ const openDetailsDrawer = async (asset) => {
       fetchQuantifyRecords(),
       fetchReferralRecords(),
       fetchTeamRewards(),
-      fetchTransactionRecords(),
       fetchExchangeRecords()
     ])
   }
@@ -1561,32 +1532,6 @@ const fetchTeamRewards = async () => {
   }
 }
 
-// 获取保证金退还等交易历史记录
-const fetchTransactionRecords = async () => {
-  const wallet = walletStore.walletAddress || localStorage.getItem('walletAddress') || localStorage.getItem('wallet_address')
-  if (!wallet) {
-    transactionRecords.value = []
-    return
-  }
-  
-  try {
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
-    const response = await fetch(`${API_BASE}/api/transaction/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
-    const data = await response.json()
-    
-    console.log('[Assets] Transaction records response:', data)
-    
-    if (data.success) {
-      transactionRecords.value = data.data || []
-    } else {
-      transactionRecords.value = []
-    }
-  } catch (error) {
-    console.error('获取交易历史失败:', error)
-    transactionRecords.value = []
-  }
-}
-
 // 获取签到记录
 const fetchCheckinRecords = async () => {
   // 优先使用 walletStore，其次从 localStorage 获取
@@ -1637,7 +1582,6 @@ const getStatusText = (status) => {
   const statusMap = {
     'pending': t('assetsPage.statusPending') || 'Pending',
     'processing': t('assetsPage.statusProcessing') || 'Processing',
-    'success': t('assetsPage.statusCompleted') || 'Completed',
     'completed': t('assetsPage.statusCompleted') || 'Completed',
     'failed': t('assetsPage.statusFailed') || 'Failed'
   }
@@ -4058,10 +4002,6 @@ const closeExchangeAlert = () => {
 
 .tx-type.team-reward {
   color: #60a5fa;
-}
-
-.tx-type.margin-refund {
-  color: #4ade80;
 }
 
 .tx-type.checkin {
