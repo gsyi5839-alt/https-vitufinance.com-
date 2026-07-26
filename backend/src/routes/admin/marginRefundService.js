@@ -21,10 +21,7 @@ function normalizeWalletAddress(walletAddress) {
 
 function normalizeReason(reason) {
   const reasonText = String(reason || '').trim();
-  if (reasonText.length < 2) {
-    throw new MarginRefundError('请输入保证金退回原因');
-  }
-  return reasonText.slice(0, 240);
+  return (reasonText || 'Manual margin refund').slice(0, 240);
 }
 
 function normalizeRefundAmount(amount) {

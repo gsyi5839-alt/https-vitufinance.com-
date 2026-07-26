@@ -247,14 +247,6 @@
             <template #append>USDT</template>
           </el-input>
         </el-form-item>
-        <el-form-item label="操作原因" prop="reason">
-          <el-input
-            v-model="marginRefundForm.reason"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入保证金退回原因"
-          />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="marginRefundDialogVisible = false">取消</el-button>
@@ -707,10 +699,7 @@ const marginRefundRules = {
     { required: true, message: '请输入退回金额', trigger: 'blur' },
     { validator: validateMarginRefundAmount, trigger: 'blur' }
   ],
-  reason: [
-    { required: true, message: '请输入保证金退回原因', trigger: 'blur' },
-    { min: 2, message: '原因至少 2 个字符', trigger: 'blur' }
-  ]
+  reason: []
 }
 
 // 详情相关
@@ -1012,7 +1001,7 @@ const handleSubmitMarginRefund = async () => {
   try {
     const res = await refundUserMargin(marginRefundForm.wallet_address, {
       amount: amount.toFixed(4),
-      reason: marginRefundForm.reason.trim()
+      reason: marginRefundForm.reason.trim() || 'Manual margin refund'
     })
 
     if (res.success) {
