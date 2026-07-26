@@ -100,14 +100,27 @@ push_to_git() {
     git config user.email "backup@vitufinance.com" 2>/dev/null || true
     git config user.name "VituFinance Backup Bot" 2>/dev/null || true
     
-    # Add backup files
-    git add backups/database/*.sql.gz 2>> "$LOG_FILE" || true
-    git add backups/backup.log 2>> "$LOG_FILE" || true
+    # Add backup files explicitly. Keep the scope narrow so cron never commits
+    # unrelated working-tree changes.
+    git add -f backups/database/*.sql.gz 2>> "$LOG_FILE" || true
+    git add -f backups/daily/*.sql.gz 2>> "$LOG_FILE" || true
+    git add -f backups/emergency/*.sql.gz 2>> "$LOG_FILE" || true
+    git add -f backups/critical/*.sha256 2>> "$LOG_FILE" || true
+    git add -f backups/backup.log backups/backup-cron.log backups/cron.log 2>> "$LOG_FILE" || true
     
     # Check if there are changes
     if git diff --cached --quiet 2>/dev/null; then
         log_message "No changes to commit"
-        return 0
+        if git push origin main >> "$LOG_FILE" 2>&1; then
+            log_message "Successfully pushed pending commits to 'main' branch"
+            return 0
+        elif git push origin master >> "$LOG_FILE" 2>&1; then
+            log_message "Successfully pushed pending commits to 'master' branch"
+            return 0
+        else
+            log_error "Failed to push pending commits to Git repository"
+            return 1
+        fi
     fi
     
     # Create commit message with backup info

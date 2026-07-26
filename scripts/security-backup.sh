@@ -113,13 +113,30 @@ log "4. Checking for git changes..."
 
 cd "${PROJECT_DIR}"
 if [ -d ".git" ]; then
-    # Check if there are changes
-    if ! git diff --quiet 2>/dev/null; then
-        git add -A
-        git commit -m "Auto-backup: ${DATE}" 2>/dev/null || true
+    git config user.email "backup@vitufinance.com" 2>/dev/null || true
+    git config user.name "VituFinance Backup Bot" 2>/dev/null || true
+
+    # Stage only backup artifacts. Do not use git add -A here; cron must never
+    # sweep unrelated source, node_modules, or local note files into backup commits.
+    git add -f backups/daily/*.sql.gz 2>> "${LOG_FILE}" || true
+    git add -f backups/database/*.sql.gz 2>> "${LOG_FILE}" || true
+    git add -f backups/emergency/*.sql.gz 2>> "${LOG_FILE}" || true
+    git add -f backups/critical/*.sha256 2>> "${LOG_FILE}" || true
+    git add -f backups/backup.log backups/backup-cron.log backups/integrity.log backups/integrity-cron.log backups/cron.log 2>> "${LOG_FILE}" || true
+
+    if ! git diff --cached --quiet 2>/dev/null; then
+        git commit -m "Auto-backup: ${DATE}" >> "${LOG_FILE}" 2>&1 || true
         log "   Git commit created"
     else
         log "   No changes to commit"
+    fi
+
+    if git push origin main >> "${LOG_FILE}" 2>&1; then
+        log "   Git push completed"
+    elif git push origin master >> "${LOG_FILE}" 2>&1; then
+        log "   Git push completed"
+    else
+        log "   Git push failed"
     fi
 fi
 
@@ -151,4 +168,3 @@ TOTAL_SIZE=$(du -sh "${BACKUP_DIR}" 2>/dev/null | awk '{print $1}')
 log "   Total backup size: ${TOTAL_SIZE}"
 
 log "=========================================="
-

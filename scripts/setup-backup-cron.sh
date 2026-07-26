@@ -3,7 +3,7 @@
 # Setup Automatic Database Backup Cron Job
 # 
 # This script sets up a cron job to automatically backup the database
-# every 3 days and push to Git for disaster recovery
+# every 3 days and push safe backup artifacts to Git for disaster recovery
 #
 # Usage: sudo ./setup-backup-cron.sh
 # =============================================================================
@@ -52,11 +52,20 @@ git config user.email "backup@vitufinance.com" 2>/dev/null || true
 git config user.name "VituFinance Backup Bot" 2>/dev/null || true
 echo -e "${GREEN}✓ Git configured for backup commits${NC}"
 
-# Create .gitignore entry to exclude large/sensitive files but include backups
-if ! grep -q "!backups/database" "$PROJECT_DIR/.gitignore" 2>/dev/null; then
+# Create .gitignore entries to include safe backup artifacts.
+if ! grep -q "!backups/database/" "$PROJECT_DIR/.gitignore" 2>/dev/null; then
     echo "" >> "$PROJECT_DIR/.gitignore"
-    echo "# Include database backups for disaster recovery" >> "$PROJECT_DIR/.gitignore"
+    echo "# Backup artifacts intentionally pushed by backup scripts." >> "$PROJECT_DIR/.gitignore"
+    echo "# Do not unignore backups/critical/*.tar.gz because those archives contain backend/.env." >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/database/" >> "$PROJECT_DIR/.gitignore"
     echo "!backups/database/*.sql.gz" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/daily/" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/daily/*.sql.gz" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/emergency/" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/emergency/*.sql.gz" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/critical/" >> "$PROJECT_DIR/.gitignore"
+    echo "!backups/critical/*.sha256" >> "$PROJECT_DIR/.gitignore"
     echo "!backups/backup.log" >> "$PROJECT_DIR/.gitignore"
     echo -e "${GREEN}✓ Updated .gitignore for backups${NC}"
 fi
@@ -141,4 +150,3 @@ echo "  1. Run a manual backup to test: $BACKUP_SCRIPT"
 echo "  2. Check backup status: $SCRIPT_DIR/check-backup-status.sh"
 echo "  3. Monitor cron logs: tail -f $CRON_LOG"
 echo ""
-

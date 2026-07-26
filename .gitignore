@@ -16,5 +16,22 @@ backups/
 # Logs
 *.log
 
+# Backup artifacts intentionally pushed by backup scripts.
+# Do not unignore backups/critical/*.tar.gz because those archives contain backend/.env.
+!backups/
+!backups/database/
+!backups/database/*.sql.gz
+!backups/daily/
+!backups/daily/*.sql.gz
+!backups/emergency/
+!backups/emergency/*.sql.gz
+!backups/critical/
+!backups/critical/*.sha256
+!backups/backup.log
+!backups/backup-cron.log
+!backups/integrity.log
+!backups/integrity-cron.log
+!backups/cron.log
+
 # Misc recovery artifacts
 photorec.log
