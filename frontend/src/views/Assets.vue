@@ -105,10 +105,10 @@
         <!-- 第一个输入区域（动态显示 WLD 或 USDT） -->
         <div class="exchange-input-group">
           <div class="input-left">
-            <input 
-              type="number" 
-              v-model="topInputAmount" 
-              class="exchange-input" 
+            <input
+              type="number"
+              v-model="topInputAmount"
+              class="exchange-input"
               :class="{ 'wld-input': topCurrency === 'WLD', 'usdt-input': topCurrency === 'USDT' }"
               placeholder="0.0000"
               step="0.0001"
@@ -159,12 +159,12 @@
           <span class="limit-label">{{ t('assetsPage.todayRedeemable') }}：</span>
           <span class="limit-value">{{ (dailyRedeemableWld - todayExchangedWld).toFixed(2) }} WLD</span>
         </div>
-        
+
         <!-- 按钮区域 -->
         <div class="exchange-buttons-wrapper">
           <!-- 等级提示按钮（仅未解锁时显示） -->
-          <button 
-            class="unlock-hint-btn" 
+          <button
+            class="unlock-hint-btn"
             v-if="!isSwapped && userLevel === 0"
             @click="goToInvite"
           >
@@ -233,22 +233,22 @@
         <div v-if="safeLoading" class="safe-loading">
           <div class="safe-spinner"></div>
         </div>
-        
+
         <!-- 设置/验证模式 -->
         <template v-if="safeMode !== 'manage'">
           <!-- 标题 -->
           <h2 class="modal-title">
             {{ safeMode === 'setup' ? (t('assetsPage.setupSafe') || 'Setup Safe') : t('assetsPage.openSafe') }}
           </h2>
-          
+
           <!-- 提示文字 -->
           <p class="modal-subtitle">
-            {{ safeMode === 'setup' 
-              ? (t('assetsPage.setPassword') || 'Set a 6-digit password') 
-              : t('assetsPage.enterSafePassword') 
+            {{ safeMode === 'setup'
+              ? (t('assetsPage.setPassword') || 'Set a 6-digit password')
+              : t('assetsPage.enterSafePassword')
             }}
           </p>
-          
+
           <!-- 密码输入框 -->
           <div class="code-input-container">
             <input
@@ -264,13 +264,13 @@
               @keydown="handleKeyDown($event, index)"
             />
           </div>
-          
+
           <!-- 错误提示 -->
           <p v-if="safeError" class="safe-error">{{ safeError }}</p>
-          
+
           <!-- 锁定余额显示 -->
           <p class="lock-balance">{{ t('assetsPage.lockBalance') }}: {{ safeStatus.locked_usdt }} USDT</p>
-          
+
           <!-- 按钮组 -->
           <div class="modal-buttons">
             <button class="modal-btn cancel-btn" @click="closeSafeModal">{{ t('assetsPage.cancel') }}</button>
@@ -279,11 +279,11 @@
             </button>
           </div>
         </template>
-        
+
         <!-- 管理模式（密码验证成功后） -->
         <template v-else>
           <h2 class="modal-title">🔐 {{ t('assetsPage.safebox') || 'Safe Box' }}</h2>
-          
+
           <!-- 锁定资产显示 -->
           <div class="safe-assets">
             <div class="safe-asset-item">
@@ -295,7 +295,7 @@
               <span class="safe-asset-value">{{ safeStatus.locked_wld }}</span>
             </div>
           </div>
-          
+
           <!-- 操作按钮 -->
           <div class="safe-actions">
             <button class="safe-action-btn deposit" @click="handleSafeDeposit('USDT')">
@@ -305,7 +305,7 @@
               {{ t('assetsPage.withdrawUsdt') || 'Withdraw USDT' }}
             </button>
           </div>
-          
+
           <!-- 关闭按钮 -->
           <button class="modal-btn cancel-btn full-width" @click="closeSafeModal">
             {{ t('assetsPage.close') || 'Close' }}
@@ -323,7 +323,7 @@
             <span class="doc-header-title">{{ currentDocTitle }}</span>
             <button class="doc-close-btn" @click="closeDocViewer">✕</button>
           </div>
-          
+
           <!-- 多页文档（白皮书） -->
           <div
             v-if="currentDocType === 'gallery'"
@@ -346,7 +346,7 @@
               />
             </div>
           </div>
-          
+
           <!-- PDF 文档 -->
           <div v-else-if="currentDocType === 'pdf'" class="doc-pdf" @click.self="closeDocViewer">
             <iframe class="doc-pdf-frame" :src="currentDocUrl" :title="currentDocTitle" />
@@ -354,7 +354,7 @@
 
           <!-- 单张图片 -->
           <div v-else class="doc-single-image" @click="closeDocViewer">
-            <img 
+            <img
               :src="currentDocUrl"
               :alt="currentDocTitle"
               class="doc-image"
@@ -391,12 +391,12 @@
                 <img src="/static/one/3.png" alt="Globe" class="drawer-globe-icon" />
                 <span class="drawer-language-text">{{ currentLanguageName }}</span>
                 <span class="drawer-arrow-icon" :class="{ 'arrow-up': showDrawerLanguageMenu }">∨</span>
-                
+
                 <!-- 语言下拉菜单 -->
                 <div v-if="showDrawerLanguageMenu" class="drawer-language-dropdown" @click.stop>
                   <div class="drawer-dropdown-triangle"></div>
-                  <div 
-                    v-for="lang in languages" 
+                  <div
+                    v-for="lang in languages"
                     :key="lang.code"
                     class="drawer-language-option"
                     :class="{ 'active': locale === lang.code }"
@@ -430,9 +430,9 @@
             <!-- WLD 签到记录 -->
             <template v-if="selectedAsset === 'WLD'">
               <div v-if="checkinRecords.length > 0 || exchangeRecords.length > 0" class="checkin-records">
-                <div 
-                  v-for="record in checkinRecords" 
-                  :key="record.id" 
+                <div
+                  v-for="record in checkinRecords"
+                  :key="record.id"
                   class="usdt-record-card"
                 >
                   <div class="tx-card-header">
@@ -490,9 +490,9 @@
               <div class="usdt-records">
                 <!-- 所有记录（充值、提现、量化收益）按时间排序 -->
                 <div v-if="allUsdtRecords.length > 0" class="records-section">
-                  <div 
-                    v-for="record in allUsdtRecords" 
-                    :key="record.type + '-' + record.id" 
+                  <div
+                    v-for="record in allUsdtRecords"
+                    :key="record.type + '-' + record.id"
                     class="usdt-record-card"
                   >
                     <!-- 充值记录 -->
@@ -512,7 +512,7 @@
                         </div>
                     </div>
                     </template>
-                
+
                 <!-- 提现记录 -->
                     <template v-else-if="record.type === 'withdraw'">
                       <div class="tx-card-header">
@@ -540,7 +540,7 @@
                         </div>
                     </div>
                     </template>
-                    
+
                     <!-- 量化收益记录 -->
                     <template v-else-if="record.type === 'quantify'">
                       <div class="tx-card-header">
@@ -558,7 +558,7 @@
                         </div>
                       </div>
                     </template>
-                    
+
                     <!-- 推荐奖励记录 -->
                     <template v-else-if="record.type === 'referral'">
                       <div class="tx-card-header">
@@ -600,7 +600,25 @@
                         </div>
                       </div>
                     </template>
-                    
+
+                    <!-- 保证金退还记录 -->
+                    <template v-else-if="record.type === 'margin_refund'">
+                      <div class="tx-card-header">
+                        <span class="tx-type margin-refund">{{ t('assetsPage.marginRefund') || 'Margin Refund' }}</span>
+                        <span class="tx-status" :class="record.status">{{ getStatusText(record.status) }}</span>
+                      </div>
+                      <div class="tx-card-body">
+                        <div class="tx-info">
+                          <div class="tx-address">{{ record.order_no || `MR-${String(record.id).padStart(8, '0')}` }}</div>
+                          <div class="tx-time">{{ formatDateTime(record.created_at) }}</div>
+                        </div>
+                        <div class="tx-amount-wrap">
+                          <div class="tx-amount deposit">+{{ parseFloat(record.amount).toFixed(4) }}</div>
+                          <div class="tx-currency">{{ record.token || 'USDT' }}</div>
+                        </div>
+                      </div>
+                    </template>
+
                     <!-- 团队奖励记录 -->
                     <template v-else-if="record.type === 'team_reward'">
                       <div class="tx-card-header">
@@ -620,7 +638,7 @@
                     </template>
                   </div>
                 </div>
-                
+
                 <!-- 无记录 -->
                 <p v-if="allUsdtRecords.length === 0" class="no-records-text">
                   {{ t('assetsPage.noRecords') }}
@@ -633,19 +651,19 @@
     </transition>
 
     <!-- 充值弹窗 -->
-    <DepositModal 
-      v-model:visible="showDepositModal" 
+    <DepositModal
+      v-model:visible="showDepositModal"
       @success="handleDepositSuccess"
     />
 
     <!-- 提款弹窗 -->
-    <WithdrawModal 
-      v-model:visible="showWithdrawModal" 
+    <WithdrawModal
+      v-model:visible="showWithdrawModal"
       @success="handleWithdrawSuccess"
     />
 
     <!-- 量化收益明细弹窗 -->
-    <QuantifyHistoryPopup 
+    <QuantifyHistoryPopup
       v-model:visible="showQuantifyHistory"
     />
 
@@ -656,7 +674,7 @@
 <script setup>
 /**
  * Assets 页面 - 钱包资产
- * 
+ *
  * 功能：
  * - 显示钱包余额（USDT、WLD）
  * - 存款/提款功能
@@ -731,10 +749,10 @@ const formatLargeNumber = (value, decimals = 4) => {
   if (value === null || value === undefined || isNaN(value)) {
     return '0.0000'
   }
-  
+
   // Convert to string to preserve precision for very large numbers
   const strValue = String(value)
-  
+
   // Check if it's in scientific notation
   if (strValue.includes('e') || strValue.includes('E')) {
     // Convert scientific notation to regular number string
@@ -745,11 +763,11 @@ const formatLargeNumber = (value, decimals = 4) => {
       maximumFractionDigits: decimals
     })
   }
-  
+
   // For very large numbers (> 1 trillion), use abbreviations
   const num = parseFloat(value)
   if (!isFinite(num)) return '0.0000'
-  
+
   if (num >= 1e15) {
     return (num / 1e15).toFixed(2) + 'Q' // Quadrillion
   } else if (num >= 1e12) {
@@ -759,7 +777,7 @@ const formatLargeNumber = (value, decimals = 4) => {
   } else if (num >= 1e6) {
     return (num / 1e6).toFixed(2) + 'M' // Million
   }
-  
+
   // Normal number formatting
   return num.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
@@ -783,34 +801,34 @@ const animateBalance = (currentRef, targetValue) => {
     currentRef.value = targetValue
     return
   }
-  
+
   const startValue = currentRef.value
   const difference = targetValue - startValue
-  
+
   // If difference is too small, set directly
   if (Math.abs(difference) < 0.0001) {
     currentRef.value = targetValue
     return
   }
-  
+
   const duration = 800 // Animation duration 800ms
   const startTime = performance.now()
-  
+
   const animate = (currentTime) => {
     const elapsed = currentTime - startTime
     const progress = Math.min(elapsed / duration, 1)
-    
+
     // Use easing function
     const easeProgress = 1 - Math.pow(1 - progress, 3)
     currentRef.value = startValue + difference * easeProgress
-    
+
     if (progress < 1) {
       requestAnimationFrame(animate)
     } else {
       currentRef.value = targetValue // Ensure final value is precise
     }
   }
-  
+
   requestAnimationFrame(animate)
 }
 
@@ -884,6 +902,7 @@ const quantifyRecords = ref([]) // 量化收益记录
 const referralRecords = ref([]) // 推荐奖励记录
 const teamRewards = ref([]) // 团队奖励记录
 const exchangeRecords = ref([]) // 闪兑记录（WLD <-> USDT）
+const marginRefundRecords = ref([]) // 保证金退还记录
 
 // 闪兑相关状态
 const exchangeWldPrice = ref(0) // 闪兑用的 WLD 价格
@@ -924,7 +943,7 @@ const bottomCurrency = computed(() => isSwapped.value ? 'WLD' : 'USDT')
 const bottomCalculatedAmount = computed(() => {
   const inputVal = topInputAmount.value || 0
   if (!isPositive(inputVal) || !isPositive(exchangeWldPrice.value)) return '0.0000'
-  
+
   // Use precision math to avoid floating point errors
   // WLD -> USDT: amount × price
   // USDT -> WLD: amount ÷ price
@@ -958,7 +977,7 @@ const formatTodayEarnings = computed(() => {
 // 合并并排序所有USDT记录（充值、提现、量化收益、推荐奖励）
 const allUsdtRecords = computed(() => {
   const records = []
-  
+
   // 添加充值记录
   depositRecords.value.forEach(record => {
     records.push({
@@ -967,7 +986,7 @@ const allUsdtRecords = computed(() => {
       timestamp: new Date(record.created_at).getTime()
     })
   })
-  
+
   // 添加提现记录
   withdrawRecords.value.forEach(record => {
     records.push({
@@ -976,7 +995,7 @@ const allUsdtRecords = computed(() => {
       timestamp: new Date(record.created_at).getTime()
     })
   })
-  
+
   // 添加量化收益记录
   quantifyRecords.value.forEach(record => {
     records.push({
@@ -985,7 +1004,7 @@ const allUsdtRecords = computed(() => {
       timestamp: new Date(record.created_at).getTime()
     })
   })
-  
+
   // 添加推荐奖励记录
   referralRecords.value.forEach(record => {
     records.push({
@@ -994,12 +1013,21 @@ const allUsdtRecords = computed(() => {
       timestamp: new Date(record.created_at).getTime()
     })
   })
-  
+
   // 添加团队奖励记录
   teamRewards.value.forEach(record => {
     records.push({
       ...record,
       type: 'team_reward',
+      timestamp: new Date(record.created_at).getTime()
+    })
+  })
+
+  // 添加保证金退还记录。Only margin_refund entries are shown here.
+  marginRefundRecords.value.forEach(record => {
+    records.push({
+      ...record,
+      type: 'margin_refund',
       timestamp: new Date(record.created_at).getTime()
     })
   })
@@ -1017,7 +1045,7 @@ const allUsdtRecords = computed(() => {
       timestamp: new Date(record.created_at).getTime()
     })
   })
-  
+
   // 按时间倒序排序（最新的在前面）
   return records.sort((a, b) => b.timestamp - a.timestamp)
 })
@@ -1034,6 +1062,7 @@ const languages = ref([
   { code: 'es', name: 'España' },
   { code: 'pt', name: 'Portugal' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
   { code: 'ms', name: 'Melayu' },
   { code: 'uk', name: 'Україна' },
   { code: 'zh-tw', name: '繁體中文' }
@@ -1051,16 +1080,16 @@ const openSafeModal = async () => {
     alert(t('assetsPage.connectWalletFirst'))
     return
   }
-  
+
   safeCode.value = ['', '', '', '', '', '']
   safeError.value = ''
   safeLoading.value = true
-  
+
   try {
     // 检查保险箱状态
     const response = await fetch(`/api/safe/status?wallet_address=${walletStore.walletAddress}`)
     const data = await response.json()
-    
+
     if (data.success) {
       safeStatus.value = data.data
       // 根据是否有保险箱决定模式
@@ -1074,7 +1103,7 @@ const openSafeModal = async () => {
   } finally {
     safeLoading.value = false
   }
-  
+
   showSafeModal.value = true
   // 延迟聚焦第一个输入框
   setTimeout(() => {
@@ -1217,7 +1246,7 @@ const loadPlatformDocuments = async () => {
       if (data.data.whitepaper_pages) {
         documentConfig.value.whitepaper.pages = data.data.whitepaper_pages
       }
-      
+
       // Update MSB license config (URL and type)
       if (data.data.msb_url) {
         documentConfig.value.msb.url = data.data.msb_url
@@ -1225,7 +1254,7 @@ const loadPlatformDocuments = async () => {
       if (data.data.msb_type) {
         documentConfig.value.msb.type = data.data.msb_type
       }
-      
+
       // Update business license config (URL and type)
       if (data.data.business_license_url) {
         documentConfig.value.license.url = data.data.business_license_url
@@ -1256,7 +1285,7 @@ const openDocument = (docKey) => {
     }
 
     currentDocType.value = effectiveType
-    
+
     // 多页文档（白皮书）
     if (effectiveType === 'gallery') {
       // 生成页面图片列表 (supports PNG format)
@@ -1283,7 +1312,7 @@ const openDocument = (docKey) => {
       whitepaperPages.value = []
       whitepaperVisibleCount.value = 0
     }
-    
+
     showDocViewer.value = true
     // 禁止背景滚动
     document.body.style.overflow = 'hidden'
@@ -1320,7 +1349,7 @@ const closeDocViewer = () => {
 const openDetailsDrawer = async (asset) => {
   selectedAsset.value = asset
   showDetailsDrawer.value = true
-  
+
   // 如果是 WLD，获取签到记录和价格
   if (asset === 'WLD') {
     await Promise.all([
@@ -1331,7 +1360,7 @@ const openDetailsDrawer = async (asset) => {
       fetchExchangeRecords()
     ])
   }
-  
+
   // 如果是 USDT，获取充值、提现、量化收益、推荐奖励和团队奖励记录
   if (asset === 'USDT') {
     await Promise.all([
@@ -1340,6 +1369,7 @@ const openDetailsDrawer = async (asset) => {
       fetchQuantifyRecords(),
       fetchReferralRecords(),
       fetchTeamRewards(),
+      fetchMarginRefundRecords(),
       fetchExchangeRecords()
     ])
   }
@@ -1358,14 +1388,14 @@ const fetchExchangeRecords = async () => {
     exchangeRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/exchange/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Exchange records response:', data)
-    
+
     if (data.success) {
       exchangeRecords.value = data.data || []
     } else {
@@ -1383,7 +1413,7 @@ const fetchWldPrice = async () => {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/market/ticker?symbols=["WLDUSDT"]`)
     const data = await response.json()
-    
+
     // API直接返回币安数组数据 [{symbol, lastPrice, ...}]
     if (Array.isArray(data) && data.length > 0) {
       wldPrice.value = parseFloat(data[0].lastPrice) || 0
@@ -1405,14 +1435,14 @@ const fetchDepositRecords = async () => {
     depositRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/deposit/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Deposit records response:', data)
-    
+
     if (data.success) {
       depositRecords.value = data.data || []
     } else {
@@ -1432,14 +1462,14 @@ const fetchWithdrawRecords = async () => {
     withdrawRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/withdraw/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Withdraw records response:', data)
-    
+
     if (data.success) {
       withdrawRecords.value = data.data || []
     } else {
@@ -1451,6 +1481,32 @@ const fetchWithdrawRecords = async () => {
   }
 }
 
+// 获取保证金退还记录
+const fetchMarginRefundRecords = async () => {
+  const wallet = walletStore.walletAddress || localStorage.getItem('walletAddress') || localStorage.getItem('wallet_address')
+  if (!wallet) {
+    marginRefundRecords.value = []
+    return
+  }
+
+  try {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
+    const response = await fetch(`${API_BASE}/api/margin-refund/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
+    const data = await response.json()
+
+    console.log('[Assets] Margin refund records response:', data)
+
+    if (data.success) {
+      marginRefundRecords.value = data.data || []
+    } else {
+      marginRefundRecords.value = []
+    }
+  } catch (error) {
+    console.error('获取保证金退还记录失败:', error)
+    marginRefundRecords.value = []
+  }
+}
+
 // 获取量化收益记录
 const fetchQuantifyRecords = async () => {
   // 优先使用 walletStore，其次从 localStorage 获取
@@ -1459,14 +1515,14 @@ const fetchQuantifyRecords = async () => {
     quantifyRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/robot/quantify-history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Quantify records response:', data)
-    
+
     if (data.success) {
       quantifyRecords.value = data.data.records || []
     } else {
@@ -1486,14 +1542,14 @@ const fetchReferralRecords = async () => {
     referralRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/referral-rewards/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Referral records response:', data)
-    
+
     if (data.success) {
       referralRecords.value = data.data || []
     } else {
@@ -1513,14 +1569,14 @@ const fetchTeamRewards = async () => {
     teamRewards.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/team-rewards/history?wallet_address=${wallet.toLowerCase()}&limit=20`)
     const data = await response.json()
-    
+
     console.log('[Assets] Team rewards response:', data)
-    
+
     if (data.success) {
       teamRewards.value = data.data || []
     } else {
@@ -1540,14 +1596,14 @@ const fetchCheckinRecords = async () => {
     checkinRecords.value = []
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/checkin/records?wallet=${wallet.toLowerCase()}`)
     const data = await response.json()
-    
+
     console.log('[Assets] Checkin records response:', data)
-    
+
     if (data.success) {
       checkinRecords.value = data.data || []
     } else {
@@ -1582,6 +1638,7 @@ const getStatusText = (status) => {
   const statusMap = {
     'pending': t('assetsPage.statusPending') || 'Pending',
     'processing': t('assetsPage.statusProcessing') || 'Processing',
+    'success': t('assetsPage.statusCompleted') || 'Completed',
     'completed': t('assetsPage.statusCompleted') || 'Completed',
     'failed': t('assetsPage.statusFailed') || 'Failed'
   }
@@ -1628,7 +1685,7 @@ const handleClickOutside = (event) => {
  */
 const refreshAllData = async () => {
   if (!walletStore.isConnected || !walletStore.walletAddress) return
-  
+
   console.log('[Assets] 自动刷新数据...')
   // Price is expensive and changes frequently; refresh it less often to keep equity display stable.
   const shouldFetchPrice = (
@@ -1684,10 +1741,10 @@ onMounted(async () => {
   // 从后台读取最新资质文件配置（白皮书/MSB/营业执照）
   await loadPlatformDocuments()
   prefetchWhitepaperFirstPages()
-  
+
   // 获取 WLD 价格
   await fetchExchangeWldPrice()
-  
+
   // 如果钱包已连接，从平台获取余额和今日收益
   if (walletStore.isConnected) {
     console.log('[Assets] Wallet connected, fetching platform balance...')
@@ -1730,7 +1787,7 @@ const fetchExchangeWldPrice = async () => {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/market/ticker?symbols=["WLDUSDT"]`)
     const data = await response.json()
-    
+
     // API直接返回币安数组数据 [{symbol, lastPrice, ...}]
     if (Array.isArray(data) && data.length > 0) {
       exchangeWldPrice.value = parseFloat(data[0].lastPrice) || 0
@@ -1764,12 +1821,12 @@ const fetchUserLevel = async () => {
   if (!walletStore.isConnected || !walletStore.walletAddress) {
     return
   }
-  
+
   try {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
     const response = await fetch(`${API_BASE}/api/user/level?wallet=${walletStore.walletAddress}`)
     const data = await response.json()
-    
+
     if (data.success) {
       userLevel.value = data.data.level
       dailyRedeemableWld.value = data.data.dailyWldLimit
@@ -1788,7 +1845,7 @@ const fetchPlatformBalance = async () => {
   if (!walletStore.isConnected || !walletStore.walletAddress) {
     return
   }
-  
+
   try {
     walletStore.setLoadingBalance(true)
     // Add timestamp to prevent browser caching
@@ -1805,16 +1862,16 @@ const fetchPlatformBalance = async () => {
       }
     )
     const data = await response.json()
-    
+
     if (data.success && data.data) {
       // 更新 USDT 和 WLD 余额
       walletStore.setUsdtBalance(data.data.usdt_balance)
       walletStore.setWldBalance(data.data.wld_balance)
-      
+
       // 更新奖励统计
       totalReferralReward.value = data.data.total_referral_reward || '0.0000'
       totalTeamReward.value = data.data.total_team_reward || '0.0000'
-      
+
       // 计算并更新总权益值（USDT + WLD 折算成 USDT）
       // 使用精确数学算法计算，避免浮点精度问题
       // Formula: Equity = USDT + (WLD × WLD_Price)
@@ -1829,7 +1886,7 @@ const fetchPlatformBalance = async () => {
       )
       // Smooth equity value updates to avoid UI "jumping" by tiny amounts.
       smoothlyUpdateEquityValue(walletStore.equityValue, totalEquity, walletStore.setEquityValue, MIN_EQUITY_UPDATE_USDT)
-      
+
       console.log('[Assets] Platform balance fetched:', {
         usdt: data.data.usdt_balance,
         wld: data.data.wld_balance,
@@ -1859,7 +1916,7 @@ const fetchTodayEarnings = async () => {
     todayEarnings.value = 0
     return
   }
-  
+
   try {
     const timestamp = Date.now()
     const response = await fetch(
@@ -1867,7 +1924,7 @@ const fetchTodayEarnings = async () => {
       { cache: 'no-store' }
     )
     const data = await response.json()
-    
+
     if (data.success && data.data) {
       todayEarnings.value = parseFloat(data.data.today_earnings) || 0
       console.log('[Assets] Today earnings fetched:', todayEarnings.value)
@@ -1937,7 +1994,7 @@ const handleWithdrawSuccess = async (data) => {
 const handleCodeInput = (index) => {
   // 只允许输入数字
   safeCode.value[index] = safeCode.value[index].replace(/[^0-9]/g, '')
-  
+
   // 如果输入了内容，自动跳到下一个输入框
   if (safeCode.value[index] && index < 5) {
     codeInputs.value[index + 1]?.focus()
@@ -1959,10 +2016,10 @@ const handleSafeSubmit = async () => {
     safeError.value = t('assetsPage.enterSixDigit') || 'Please enter 6 digits'
     return
   }
-  
+
   safeLoading.value = true
   safeError.value = ''
-  
+
   try {
     if (safeMode.value === 'setup') {
       // 首次设置密码
@@ -1975,7 +2032,7 @@ const handleSafeSubmit = async () => {
         })
       })
       const data = await response.json()
-      
+
       if (data.success) {
         safeStatus.value.has_safe = true
         safeMode.value = 'manage'
@@ -1995,7 +2052,7 @@ const handleSafeSubmit = async () => {
         })
       })
       const data = await response.json()
-      
+
       if (data.success) {
         safeStatus.value.locked_usdt = data.data.locked_usdt
         safeStatus.value.locked_wld = data.data.locked_wld
@@ -2025,15 +2082,15 @@ const handleSafeDeposit = async (token = 'USDT') => {
   const code = safeCode.value.join('')
   const amountStr = prompt(t('assetsPage.enterDepositAmount') || `Enter ${token} amount to deposit:`)
   if (!amountStr) return
-  
+
   const amount = parseFloat(amountStr)
   if (isNaN(amount) || amount <= 0) {
     alert(t('assetsPage.invalidAmount') || 'Invalid amount')
     return
   }
-  
+
   safeLoading.value = true
-  
+
   try {
     const tokenUpper = String(token || 'USDT').toUpperCase()
     const response = await fetch('/api/safe/deposit', {
@@ -2047,7 +2104,7 @@ const handleSafeDeposit = async (token = 'USDT') => {
       })
     })
     const data = await response.json()
-    
+
     if (data.success) {
       // 更新余额
       walletStore.setUsdtBalance(data.data.balance.usdt)
@@ -2070,29 +2127,29 @@ const handleSafeDeposit = async (token = 'USDT') => {
 const handleSafeWithdraw = async (token = 'USDT') => {
   const code = safeCode.value.join('')
   const tokenUpper = String(token || 'USDT').toUpperCase()
-  const maxAmount = tokenUpper === 'USDT' 
-    ? parseFloat(safeStatus.value.locked_usdt) 
+  const maxAmount = tokenUpper === 'USDT'
+    ? parseFloat(safeStatus.value.locked_usdt)
     : parseFloat(safeStatus.value.locked_wld)
-    
+
   const amountStr = prompt(
-    (t('assetsPage.enterWithdrawAmount') || `Enter ${token} amount to withdraw:`) + 
+    (t('assetsPage.enterWithdrawAmount') || `Enter ${token} amount to withdraw:`) +
     ` (Max: ${maxAmount.toFixed(4)})`
   )
   if (!amountStr) return
-  
+
   const amount = parseFloat(amountStr)
   if (isNaN(amount) || amount <= 0) {
     alert(t('assetsPage.invalidAmount') || 'Invalid amount')
     return
   }
-  
+
   if (amount > maxAmount) {
     alert(t('assetsPage.insufficientLocked') || 'Insufficient locked balance')
     return
   }
-  
+
   safeLoading.value = true
-  
+
   try {
     const response = await fetch('/api/safe/withdraw', {
       method: 'POST',
@@ -2105,7 +2162,7 @@ const handleSafeWithdraw = async (token = 'USDT') => {
       })
     })
     const data = await response.json()
-    
+
     if (data.success) {
       // 更新余额
       walletStore.setUsdtBalance(data.data.balance.usdt)
@@ -2128,15 +2185,15 @@ const handleSafeWithdraw = async (token = 'USDT') => {
 const handleSwap = () => {
   // 显示加载动画
   showSwapLoading.value = true
-  
+
   // 1.5秒后执行交换并关闭动画
   setTimeout(() => {
     // 切换币种位置
     isSwapped.value = !isSwapped.value
-    
+
     // 清空输入值
     topInputAmount.value = ''
-    
+
     // 关闭加载动画
     showSwapLoading.value = false
   }, 1500)
@@ -2151,17 +2208,17 @@ const handleConfirmExchange = async () => {
     exchangeAlertType.value = 'warning'
     exchangeAlertMessage.value = t('assetsPage.connectWalletFirst')
     showExchangeAlert.value = true
-    
+
     setTimeout(() => {
       showExchangeAlert.value = false
     }, 2000)
     return
   }
-  
+
   // 获取当前兑换方向和金额
   const fromCurrency = topCurrency.value
   const exchangeAmount = parseFloat(topInputAmount.value) || 0
-  
+
   // 获取当前用户余额
   let fromBalance = 0
   if (fromCurrency === 'WLD') {
@@ -2169,61 +2226,61 @@ const handleConfirmExchange = async () => {
   } else {
     fromBalance = parseFloat(walletStore.usdtBalance) || 0
   }
-  
+
   // 检查输入金额是否有效
   if (exchangeAmount <= 0) {
     exchangeAlertType.value = 'warning'
     exchangeAlertMessage.value = t('assetsPage.enterAmount') || 'Please enter a valid amount'
     showExchangeAlert.value = true
-    
+
     setTimeout(() => {
       showExchangeAlert.value = false
     }, 2000)
     return
   }
-  
+
   // 检查余额是否足够
   if (exchangeAmount > fromBalance) {
     exchangeAlertType.value = 'warning'
     exchangeAlertMessage.value = t('assetsPage.insufficientBalance', { currency: fromCurrency })
     showExchangeAlert.value = true
-    
+
     setTimeout(() => {
       showExchangeAlert.value = false
     }, 2000)
     return
   }
-  
+
   // 确定兑换方向
   const direction = fromCurrency === 'WLD' ? 'wld_to_usdt' : 'usdt_to_wld'
-  
+
   // WLD 换 USDT 需要检查等级限制
   if (direction === 'wld_to_usdt') {
     if (userLevel.value === 0) {
       exchangeAlertType.value = 'warning'
       exchangeAlertMessage.value = t('assetsPage.inviteToExchange') || 'Invite members to unlock WLD exchange'
       showExchangeAlert.value = true
-      
+
       setTimeout(() => {
         showExchangeAlert.value = false
       }, 2000)
       return
     }
-    
+
     // 检查每日限额
     const remaining = dailyRedeemableWld.value - todayExchangedWld.value
     if (exchangeAmount > remaining) {
       exchangeAlertType.value = 'warning'
       exchangeAlertMessage.value = `Daily limit exceeded. You can only exchange ${remaining.toFixed(4)} WLD today.`
       showExchangeAlert.value = true
-      
+
       setTimeout(() => {
         showExchangeAlert.value = false
       }, 2000)
       return
     }
   }
-  
+
   try {
     // 调用兑换 API
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://vitufinance.com'
@@ -2239,25 +2296,25 @@ const handleConfirmExchange = async () => {
       })
     })
     const result = await response.json()
-    
+
     if (result.success) {
       // 更新本地余额
       walletStore.setUsdtBalance(result.data.newUsdtBalance)
       walletStore.setWldBalance(result.data.newWldBalance)
-      
+
       // 更新已兑换数量
       if (direction === 'wld_to_usdt') {
         todayExchangedWld.value = parseFloat(todayExchangedWld.value) + exchangeAmount
       }
-      
+
       // 清空输入框
       topInputAmount.value = ''
-      
+
       // 显示成功提示
   exchangeAlertType.value = 'success'
   exchangeAlertMessage.value = t('assetsPage.exchangeSuccess')
   showExchangeAlert.value = true
-  
+
   setTimeout(() => {
     showExchangeAlert.value = false
   }, 2000)
@@ -2269,7 +2326,7 @@ const handleConfirmExchange = async () => {
     exchangeAlertType.value = 'warning'
     exchangeAlertMessage.value = error.message || 'Exchange failed'
     showExchangeAlert.value = true
-    
+
     setTimeout(() => {
       showExchangeAlert.value = false
     }, 2000)
@@ -4002,6 +4059,10 @@ const closeExchangeAlert = () => {
 
 .tx-type.team-reward {
   color: #60a5fa;
+}
+
+.tx-type.margin-refund {
+  color: #4ade80;
 }
 
 .tx-type.checkin {

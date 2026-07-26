@@ -9,6 +9,7 @@ import {
 } from './shared.js';
 import userBalanceDetailRoutes from './userBalanceDetailRoutes.js';
 import userBanRoutes from './userBanRoutes.js';
+import { createMarginRefund } from './marginRefundService.js';
 
 const router = express.Router();
 
@@ -186,6 +187,31 @@ router.put('/users/:wallet_address/balance', authMiddleware, async (req, res) =>
     res.status(500).json({
       success: false,
       message: '更新失败'
+    });
+  }
+});
+
+router.post('/users/:wallet_address/margin-refund', authMiddleware, async (req, res) => {
+  try {
+    const result = await createMarginRefund({
+      walletAddress: req.params.wallet_address,
+      amount: req.body?.amount,
+      reason: req.body?.reason || req.body?.remark,
+      adminId: req.admin?.id || 0,
+      adminUsername: req.admin?.username || 'unknown',
+      ipAddress: req.ip || req.connection?.remoteAddress || 'unknown'
+    });
+
+    res.json({
+      success: true,
+      message: '保证金退回成功',
+      data: result
+    });
+  } catch (error) {
+    console.error('保证金退回失败:', error.message);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : '保证金退回失败'
     });
   }
 });

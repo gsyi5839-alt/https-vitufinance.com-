@@ -64,9 +64,19 @@ router.get('/users/:wallet_address/diagnose', authMiddleware, async (req, res) =
       [walletAddr]
     );
     const totalTeamReward = parseFloat(teamResult[0]?.total) || 0;
+    const marginRefundResult = await dbQuery(
+      `SELECT COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+       FROM transaction_history
+       WHERE LOWER(wallet_address) = ?
+         AND tx_type = 'margin_refund'
+         AND direction = 'in'
+         AND status IN ('completed', 'success')`,
+      [walletAddr]
+    );
+    const totalMarginRefund = parseFloat(marginRefundResult[0]?.total) || 0;
     const manualAdded = parseFloat(user.manual_added_balance) || 0;
     const expectedBalance = totalDeposits - totalWithdrawals - totalRobotCost +
-      totalRobotProfit + totalReferralReward + totalTeamReward + manualAdded;
+      totalRobotProfit + totalReferralReward + totalTeamReward + totalMarginRefund + manualAdded;
     const currentBalance = parseFloat(user.usdt_balance);
     const difference = currentBalance - expectedBalance;
 
@@ -114,7 +124,11 @@ router.get('/users/:wallet_address/diagnose', authMiddleware, async (req, res) =
             count: robotCount
           },
           referral_reward: totalReferralReward.toFixed(4),
-          team_reward: totalTeamReward.toFixed(4)
+          team_reward: totalTeamReward.toFixed(4),
+          margin_refund: {
+            total: totalMarginRefund.toFixed(4),
+            count: marginRefundResult[0]?.count || 0
+          }
         },
         analysis: {
           expected_balance: expectedBalance.toFixed(4),
@@ -300,6 +314,7 @@ router.get('/users/:wallet_address/balance-details', authMiddleware, async (req,
           robot_earnings: totals.robot_earnings.toFixed(4),
           referral_rewards: totals.referral_rewards.toFixed(4),
           team_rewards: totals.team_rewards.toFixed(4),
+          margin_refunds: totals.margin_refunds.toFixed(4),
           admin_adjustments: totals.admin_adjustments.toFixed(4),
           calculated_balance: totals.calculated_balance.toFixed(4),
           balance_difference: (parseFloat(user.usdt_balance) - totals.calculated_balance).toFixed(4)
@@ -362,9 +377,37 @@ async function appendRewardAndAdminTransactions({ walletAddr, transactions }) {
     });
   }
 
+  const marginRefunds = await dbQuery(
+    `SELECT id,
+            COALESCE(tx_hash, CONCAT('MR-', LPAD(id, 8, '0'))) AS order_no,
+            amount, token, status, description, created_at
+     FROM transaction_history
+     WHERE LOWER(wallet_address) = ?
+       AND tx_type = 'margin_refund'
+       AND direction = 'in'
+     ORDER BY created_at DESC`,
+    [walletAddr]
+  );
+  for (const m of marginRefunds) {
+    const completed = ['completed', 'success'].includes(String(m.status || '').toLowerCase());
+    transactions.push({
+      id: `margin_refund_${m.id}`,
+      type: 'margin_refund',
+      type_cn: '保证金退还',
+      amount: completed ? parseFloat(m.amount) : 0,
+      display_amount: parseFloat(m.amount),
+      status: m.status,
+      affects_balance: completed,
+      description: m.description || 'Margin Refund',
+      order_no: m.order_no,
+      token: m.token || 'USDT',
+      created_at: m.created_at
+    });
+  }
+
   try {
     const adminLogs = await dbQuery(
-      `SELECT id, operation_type, operation_detail, admin_name, created_at
+      `SELECT id, operation_type, operation_detail, admin_username, created_at
        FROM admin_operation_logs
        WHERE operation_type LIKE '%balance%' AND operation_detail LIKE ?
        ORDER BY created_at DESC LIMIT 50`,
@@ -394,8 +437,8 @@ function appendAdminAdjustmentTransaction({ log, walletAddr, transactions }) {
       display_amount: Math.abs(usdtChange),
       status: 'completed',
       affects_balance: true,
-      description: `管理员 ${log.admin_name} 调整余额`,
-      admin: log.admin_name,
+      description: `管理员 ${log.admin_username} 调整余额`,
+      admin: log.admin_username,
       before: details.before,
       after: details.after,
       created_at: log.created_at
@@ -413,10 +456,11 @@ function calculateTotals(transactions) {
     robot_earnings: transactions.filter(t => t.type === 'robot_earning').reduce((sum, t) => sum + t.amount, 0),
     referral_rewards: transactions.filter(t => t.type === 'referral_reward').reduce((sum, t) => sum + t.amount, 0),
     team_rewards: transactions.filter(t => t.type === 'team_reward').reduce((sum, t) => sum + t.amount, 0),
+    margin_refunds: transactions.filter(t => t.type === 'margin_refund' && t.affects_balance).reduce((sum, t) => sum + t.amount, 0),
     admin_adjustments: transactions.filter(t => t.type === 'admin_adjustment').reduce((sum, t) => sum + t.amount, 0)
   };
   totals.calculated_balance = totals.deposits - totals.withdrawals - totals.robot_purchases +
-    totals.robot_earnings + totals.referral_rewards + totals.team_rewards + totals.admin_adjustments;
+    totals.robot_earnings + totals.referral_rewards + totals.team_rewards + totals.margin_refunds + totals.admin_adjustments;
   return totals;
 }
 

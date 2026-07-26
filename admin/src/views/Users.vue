@@ -100,13 +100,19 @@
         </template>
       </el-table-column>
       
-      <el-table-column label="操作" width="340" fixed="right" align="center">
+      <el-table-column label="操作" width="470" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="handleEdit(row)">
             编辑
           </el-button>
           <el-button type="success" link size="small" @click="handleViewBalanceDetails(row)">
             明细
+          </el-button>
+          <el-button type="primary" link size="small" @click="handleViewOrders(row)">
+            订单
+          </el-button>
+          <el-button type="success" link size="small" @click="handleMarginRefund(row)">
+            保证金退回
           </el-button>
           <el-button type="warning" link size="small" @click="handleDiagnose(row)">
             诊断
@@ -205,6 +211,58 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 保证金退回弹窗 -->
+    <el-dialog
+      v-model="marginRefundDialogVisible"
+      title="保证金退回"
+      width="520px"
+      destroy-on-close
+    >
+      <el-form
+        ref="marginRefundFormRef"
+        :model="marginRefundForm"
+        :rules="marginRefundRules"
+        label-width="110px"
+      >
+        <el-form-item label="钱包地址">
+          <el-input v-model="marginRefundForm.wallet_address" disabled />
+        </el-form-item>
+        <el-form-item label="当前USDT">
+          <el-input :model-value="formatAmount(marginRefundForm.current_usdt_balance)" disabled>
+            <template #append>USDT</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="退回金额" prop="amount">
+          <el-input-number
+            v-model="marginRefundForm.amount"
+            :precision="4"
+            :step="1"
+            :min="0.0001"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="退回后余额">
+          <el-input :model-value="marginRefundPreviewBalance" disabled>
+            <template #append>USDT</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="操作原因" prop="reason">
+          <el-input
+            v-model="marginRefundForm.reason"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入保证金退回原因"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="marginRefundDialogVisible = false">取消</el-button>
+        <el-button type="success" :loading="marginRefundSubmitting" @click="handleSubmitMarginRefund">
+          确认退回
+        </el-button>
+      </template>
+    </el-dialog>
     
     <!-- 用户详情抽屉 -->
     <el-drawer
@@ -296,6 +354,9 @@
             <el-descriptions-item label="团队奖励">
               <span class="amount positive">+{{ balanceDetailsData.totals.team_rewards }}</span>
             </el-descriptions-item>
+            <el-descriptions-item label="保证金退还">
+              <span class="amount positive">+{{ balanceDetailsData.totals.margin_refunds || '0.0000' }}</span>
+            </el-descriptions-item>
             <el-descriptions-item label="管理员调整">
               <span :class="parseFloat(balanceDetailsData.totals.admin_adjustments) >= 0 ? 'amount positive' : 'amount negative'">
                 {{ parseFloat(balanceDetailsData.totals.admin_adjustments) >= 0 ? '+' : '' }}{{ balanceDetailsData.totals.admin_adjustments }}
@@ -331,6 +392,11 @@
               </template>
             </el-table-column>
             <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="order_no" label="订单号" width="160" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.order_no || '-' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'pending' ? 'warning' : 'info'" size="small">
@@ -341,6 +407,122 @@
             <el-table-column prop="created_at" label="时间" width="160">
               <template #default="{ row }">
                 {{ formatTime(row.created_at) }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </template>
+    </el-drawer>
+
+    <!-- 用户订单抽屉 -->
+    <el-drawer
+      v-model="userOrdersDrawerVisible"
+      title="用户订单"
+      size="900px"
+    >
+      <div v-if="userOrdersLoading" class="diagnose-loading">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>正在加载...</span>
+      </div>
+      <template v-else-if="userOrdersData">
+        <el-card class="diagnose-card">
+          <template #header><span>账户余额</span></template>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="钱包地址" :span="2">
+              {{ userOrdersData.userInfo.wallet_address }}
+            </el-descriptions-item>
+            <el-descriptions-item label="USDT余额">
+              {{ formatAmount(userOrdersData.userInfo.usdt_balance) }} USDT
+            </el-descriptions-item>
+            <el-descriptions-item label="当前持仓保证金">
+              {{ activeMarginBalance }} USDT
+            </el-descriptions-item>
+            <el-descriptions-item label="冻结USDT">
+              {{ formatAmount(userOrdersData.userInfo.frozen_usdt) }} USDT
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card class="diagnose-card">
+          <template #header>
+            <span>订单记录 ({{ filteredUserOrders.length }}/{{ userOrdersData.robots.length }}条)</span>
+          </template>
+          <el-form :inline="true" class="order-filter-bar">
+            <el-form-item label="订单类型">
+              <el-select v-model="orderFilters.type" clearable placeholder="全部" style="width: 130px">
+                <el-option label="CEX" value="cex" />
+                <el-option label="DEX" value="dex" />
+                <el-option label="GRID" value="grid" />
+                <el-option label="HIGH" value="high" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="订单状态">
+              <el-select v-model="orderFilters.status" clearable placeholder="全部" style="width: 130px">
+                <el-option label="当前持仓" value="active" />
+                <el-option label="历史到期" value="expired" />
+                <el-option label="已取消" value="cancelled" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="订单时间">
+              <el-date-picker
+                v-model="orderFilters.dateRange"
+                type="daterange"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                value-format="YYYY-MM-DD"
+                style="width: 240px"
+              />
+            </el-form-item>
+            <el-form-item label="排序">
+              <el-select v-model="orderFilters.sort" style="width: 150px">
+                <el-option label="下单时间倒序" value="created_desc" />
+                <el-option label="下单时间正序" value="created_asc" />
+                <el-option label="金额从高到低" value="amount_desc" />
+                <el-option label="金额从低到高" value="amount_asc" />
+                <el-option label="到期时间倒序" value="end_desc" />
+                <el-option label="到期时间正序" value="end_asc" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button @click="resetOrderFilters">重置</el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-table :data="filteredUserOrders" max-height="430" size="small" stripe border>
+            <el-table-column prop="id" label="订单ID" width="80" />
+            <el-table-column prop="robot_name" label="机器人" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="robot_type" label="类型" width="90">
+              <template #default="{ row }">
+                <el-tag :type="getRobotTypeColor(row.robot_type)" size="small">
+                  {{ getRobotTypeName(row.robot_type) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getRobotStatusColor(row.status)" size="small">
+                  {{ getRobotStatusText(row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="price" label="保证金" width="120" align="right">
+              <template #default="{ row }">
+                {{ formatAmount(row.price) }} USDT
+              </template>
+            </el-table-column>
+            <el-table-column prop="total_profit" label="累计收益" width="120" align="right">
+              <template #default="{ row }">
+                <span class="amount positive">{{ formatAmount(row.total_profit) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="下单时间" width="160">
+              <template #default="{ row }">
+                {{ formatTime(row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="end_time" label="到期时间" width="160">
+              <template #default="{ row }">
+                {{ formatTime(row.end_time || row.end_date) }}
               </template>
             </el-table-column>
           </el-table>
@@ -389,6 +571,9 @@
             </el-descriptions-item>
             <el-descriptions-item label="团队奖励">
               +{{ diagnoseData.calculated.team_reward }}
+            </el-descriptions-item>
+            <el-descriptions-item label="保证金退还">
+              +{{ diagnoseData.calculated.margin_refund?.total || '0.0000' }} ({{ diagnoseData.calculated.margin_refund?.count || 0 }}笔)
             </el-descriptions-item>
             <el-descriptions-item label="手动添加">
               +{{ diagnoseData.stored_totals.manual_added }}
@@ -450,11 +635,11 @@
 /**
  * 用户管理页面
  */
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, CopyDocument, Loading } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import { getUsers, updateUserBalance, diagnoseUserBalance, getUserBalanceDetails, banUser, unbanUser, releaseFrozenUsdt } from '@/api'
+import { getUsers, updateUserBalance, diagnoseUserBalance, getUserBalanceDetails, getUserRobots, banUser, unbanUser, releaseFrozenUsdt, refundUserMargin } from '@/api'
 
 // 加载状态
 const loading = ref(false)
@@ -491,6 +676,43 @@ const editRules = {
   remark: [{ required: true, message: '请输入操作备注', trigger: 'blur' }]
 }
 
+// 保证金退回
+const marginRefundDialogVisible = ref(false)
+const marginRefundSubmitting = ref(false)
+const marginRefundFormRef = ref(null)
+const marginRefundForm = reactive({
+  wallet_address: '',
+  current_usdt_balance: 0,
+  amount: null,
+  reason: ''
+})
+
+const marginRefundPreviewBalance = computed(() => {
+  const current = parseFloat(marginRefundForm.current_usdt_balance || 0)
+  const amount = parseFloat(marginRefundForm.amount || 0)
+  return (current + (Number.isFinite(amount) ? amount : 0)).toFixed(4)
+})
+
+const validateMarginRefundAmount = (_rule, value, callback) => {
+  const amount = parseFloat(value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    callback(new Error('退回金额必须大于 0'))
+    return
+  }
+  callback()
+}
+
+const marginRefundRules = {
+  amount: [
+    { required: true, message: '请输入退回金额', trigger: 'blur' },
+    { validator: validateMarginRefundAmount, trigger: 'blur' }
+  ],
+  reason: [
+    { required: true, message: '请输入保证金退回原因', trigger: 'blur' },
+    { min: 2, message: '原因至少 2 个字符', trigger: 'blur' }
+  ]
+}
+
 // 详情相关
 const detailDrawerVisible = ref(false)
 const currentUser = ref(null)
@@ -504,6 +726,54 @@ const diagnoseData = ref(null)
 const balanceDetailsDrawerVisible = ref(false)
 const balanceDetailsLoading = ref(false)
 const balanceDetailsData = ref(null)
+
+// 用户订单相关
+const userOrdersDrawerVisible = ref(false)
+const userOrdersLoading = ref(false)
+const userOrdersData = ref(null)
+const orderFilters = reactive({
+  type: '',
+  status: '',
+  dateRange: [],
+  sort: 'created_desc'
+})
+
+const filteredUserOrders = computed(() => {
+  let orders = [...(userOrdersData.value?.robots || [])]
+
+  if (orderFilters.type) {
+    orders = orders.filter(order => String(order.robot_type || '').toLowerCase() === orderFilters.type)
+  }
+
+  if (orderFilters.status) {
+    orders = orders.filter(order => String(order.status || '').toLowerCase() === orderFilters.status)
+  }
+
+  if (orderFilters.dateRange?.length === 2) {
+    const start = dayjs(orderFilters.dateRange[0]).startOf('day')
+    const end = dayjs(orderFilters.dateRange[1]).endOf('day')
+    orders = orders.filter(order => {
+      const orderTime = dayjs(order.created_at || order.start_time || order.start_date)
+      return orderTime.isValid() && !orderTime.isBefore(start) && !orderTime.isAfter(end)
+    })
+  }
+
+  return orders.sort((a, b) => {
+    if (orderFilters.sort === 'created_asc') return compareOrderDate(a, b, 'created_at')
+    if (orderFilters.sort === 'amount_desc') return compareOrderAmount(b, a)
+    if (orderFilters.sort === 'amount_asc') return compareOrderAmount(a, b)
+    if (orderFilters.sort === 'end_desc') return compareOrderDate(b, a, 'end_time')
+    if (orderFilters.sort === 'end_asc') return compareOrderDate(a, b, 'end_time')
+    return compareOrderDate(b, a, 'created_at')
+  })
+})
+
+const activeMarginBalance = computed(() => {
+  return (userOrdersData.value?.robots || [])
+    .filter(order => String(order.status || '').toLowerCase() === 'active')
+    .reduce((sum, order) => sum + parseFloat(order.price || 0), 0)
+    .toFixed(4)
+})
 
 /**
  * 获取用户列表
@@ -710,6 +980,62 @@ const handleSubmitEdit = async () => {
 }
 
 /**
+ * 打开保证金退回弹窗
+ */
+const handleMarginRefund = (row) => {
+  marginRefundForm.wallet_address = row.wallet_address
+  marginRefundForm.current_usdt_balance = parseFloat(row.usdt_balance || 0)
+  marginRefundForm.amount = null
+  marginRefundForm.reason = ''
+  marginRefundDialogVisible.value = true
+}
+
+/**
+ * 提交保证金退回
+ */
+const handleSubmitMarginRefund = async () => {
+  const valid = await marginRefundFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  const amount = parseFloat(marginRefundForm.amount)
+  try {
+    await ElMessageBox.confirm(
+      `确认给该用户退回 ${amount.toFixed(4)} USDT 保证金吗？\n钱包地址：${shortenAddress(marginRefundForm.wallet_address)}\n退回后余额：${marginRefundPreviewBalance.value} USDT`,
+      '确认保证金退回',
+      { type: 'warning', confirmButtonText: '确认退回', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+
+  marginRefundSubmitting.value = true
+  try {
+    const res = await refundUserMargin(marginRefundForm.wallet_address, {
+      amount: amount.toFixed(4),
+      reason: marginRefundForm.reason.trim()
+    })
+
+    if (res.success) {
+      ElMessage.success(`保证金退回成功，订单号：${res.data?.order_no || '-'}`)
+      marginRefundDialogVisible.value = false
+      await fetchUsers()
+      if (
+        balanceDetailsDrawerVisible.value &&
+        String(balanceDetailsData.value?.user?.wallet_address || '').toLowerCase() === String(marginRefundForm.wallet_address || '').toLowerCase()
+      ) {
+        await handleViewBalanceDetails({ wallet_address: marginRefundForm.wallet_address })
+      }
+    } else {
+      ElMessage.error(res.message || '保证金退回失败')
+    }
+  } catch (error) {
+    console.error('保证金退回失败:', error)
+  } finally {
+    marginRefundSubmitting.value = false
+  }
+}
+
+/**
  * 查看详情
  */
 const handleViewDetail = (row) => {
@@ -763,6 +1089,34 @@ const handleViewBalanceDetails = async (row) => {
   }
 }
 
+const resetOrderFilters = () => {
+  orderFilters.type = ''
+  orderFilters.status = ''
+  orderFilters.dateRange = []
+  orderFilters.sort = 'created_desc'
+}
+
+const handleViewOrders = async (row) => {
+  userOrdersDrawerVisible.value = true
+  userOrdersLoading.value = true
+  userOrdersData.value = null
+  resetOrderFilters()
+
+  try {
+    const res = await getUserRobots(row.wallet_address)
+    if (res.success) {
+      userOrdersData.value = res.data
+    } else {
+      ElMessage.error(res.message || '获取订单失败')
+    }
+  } catch (error) {
+    console.error('获取用户订单失败:', error)
+    ElMessage.error('获取订单失败')
+  } finally {
+    userOrdersLoading.value = false
+  }
+}
+
 /**
  * 获取交易类型的颜色
  */
@@ -774,10 +1128,60 @@ const getTransactionTypeColor = (type) => {
     robot_earning: 'success',
     referral_reward: 'primary',
     team_reward: 'primary',
+    margin_refund: 'success',
     admin_adjustment: 'info'
   }
   return colors[type] || 'info'
 }
+
+const getRobotTypeName = (type) => {
+  const names = {
+    cex: 'CEX',
+    dex: 'DEX',
+    grid: 'GRID',
+    high: 'HIGH'
+  }
+  return names[String(type || '').toLowerCase()] || type || '-'
+}
+
+const getRobotTypeColor = (type) => {
+  const colors = {
+    cex: 'primary',
+    dex: 'success',
+    grid: 'warning',
+    high: 'danger'
+  }
+  return colors[String(type || '').toLowerCase()] || 'info'
+}
+
+const getRobotStatusText = (status) => {
+  const texts = {
+    active: '当前持仓',
+    expired: '历史到期',
+    cancelled: '已取消'
+  }
+  return texts[String(status || '').toLowerCase()] || status || '-'
+}
+
+const getRobotStatusColor = (status) => {
+  const colors = {
+    active: 'success',
+    expired: 'info',
+    cancelled: 'danger'
+  }
+  return colors[String(status || '').toLowerCase()] || 'info'
+}
+
+const getOrderDate = (order, field) => {
+  const value = field === 'end_time'
+    ? order.end_time || order.end_date
+    : order.created_at || order.start_time || order.start_date
+  const timestamp = dayjs(value).valueOf()
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+const compareOrderDate = (a, b, field) => getOrderDate(a, field) - getOrderDate(b, field)
+const compareOrderAmount = (a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0)
 
 /**
  * 复制地址
@@ -806,6 +1210,7 @@ const formatAmount = (amount) => {
  * 格式化时间
  */
 const formatTime = (time) => {
+  if (!time) return '-'
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
@@ -890,4 +1295,3 @@ onMounted(() => {
   font-weight: 600;
 }
 </style>
-

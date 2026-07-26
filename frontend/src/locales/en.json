@@ -453,6 +453,7 @@
     "inviteToExchange": "Invite members to unlock WLD exchange",
     "enterAmount": "Please enter a valid amount",
     "exchangeRecord": "Exchange",
+    "marginRefund": "Margin Refund",
     "statusPending": "Pending",
     "statusCompleted": "Completed",
     "statusFailed": "Failed",

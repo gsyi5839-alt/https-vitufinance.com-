@@ -466,6 +466,7 @@
     "inviteToExchange": "Запросіть членів розблокувати обмін WLD",
     "enterAmount": "Будь ласка, введіть дійсну суму",
     "exchangeRecord": "Запис Обміну",
+    "marginRefund": "Повернення маржі",
     "statusPending": "Очікується",
     "statusCompleted": "Завершено",
     "statusFailed": "Не вдалося",

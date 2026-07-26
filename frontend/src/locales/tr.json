@@ -466,6 +466,7 @@
     "inviteToExchange": "WLD takasını açmak için üye davet edin",
     "enterAmount": "Lütfen geçerli bir tutar girin",
     "exchangeRecord": "Takas Kaydı",
+    "marginRefund": "Marjin İadesi",
     "statusPending": "Beklemede",
     "statusCompleted": "Tamamlandı",
     "statusFailed": "Başarısız",

@@ -466,6 +466,7 @@
     "inviteToExchange": "Undang anggota untuk membuka pertukaran WLD",
     "enterAmount": "Harap masukkan jumlah yang valid",
     "exchangeRecord": "Rekaman Tukar",
+    "marginRefund": "Pengembalian Margin",
     "statusPending": "Menunggu",
     "statusCompleted": "Selesai",
     "statusFailed": "Gagal",

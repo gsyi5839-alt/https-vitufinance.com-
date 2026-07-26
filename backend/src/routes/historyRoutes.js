@@ -79,5 +79,52 @@ export function createHistoryRoutes({ dbQuery }) {
         }
     });
 
+    router.get('/margin-refund/history', async (req, res) => {
+        try {
+            const { wallet_address, limit = 20 } = req.query;
+
+            if (!wallet_address) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'wallet_address parameter is required'
+                });
+            }
+
+            const walletAddr = String(wallet_address).toLowerCase();
+            const records = await dbQuery(
+                `SELECT id,
+                        COALESCE(tx_hash, CONCAT('MR-', LPAD(id, 8, '0'))) AS order_no,
+                        wallet_address,
+                        amount,
+                        token,
+                        currency,
+                        status,
+                        description,
+                        related_id,
+                        related_type,
+                        created_at
+                 FROM transaction_history
+                 WHERE LOWER(wallet_address) = LOWER(?)
+                   AND tx_type = 'margin_refund'
+                   AND direction = 'in'
+                 ORDER BY created_at DESC
+                 LIMIT ?`,
+                [walletAddr, parseHistoryLimit(limit)]
+            );
+
+            res.json({
+                success: true,
+                data: records
+            });
+        } catch (error) {
+            console.error('获取保证金退还记录失败:', error.message);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to get margin refund history',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    });
+
     return router;
 }

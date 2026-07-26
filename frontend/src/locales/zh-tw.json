@@ -484,6 +484,7 @@
     "inviteToExchange": "邀請會員解鎖 WLD 兌換",
     "enterAmount": "請輸入有效金額",
     "exchangeRecord": "兌換記錄",
+    "marginRefund": "保證金退還",
     "statusPending": "待處理",
     "statusCompleted": "已完成",
     "statusFailed": "失敗",

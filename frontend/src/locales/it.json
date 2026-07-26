@@ -444,6 +444,7 @@
     "inviteToExchange": "Invita membri per sbloccare scambio WLD",
     "enterAmount": "Inserisci un importo valido",
     "exchangeRecord": "Scambio",
+    "marginRefund": "Rimborso del margine",
     "statusPending": "In Attesa",
     "statusCompleted": "Completato",
     "statusFailed": "Non Riuscito",

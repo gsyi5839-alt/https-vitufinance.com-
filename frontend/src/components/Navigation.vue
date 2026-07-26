@@ -102,6 +102,7 @@ const languages = ref([
   { code: 'es', name: 'España' },
   { code: 'pt', name: 'Portugal' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
   { code: 'ms', name: 'Melayu' },
   { code: 'uk', name: 'Україна' },
   { code: 'zh-tw', name: '繁體中文' }

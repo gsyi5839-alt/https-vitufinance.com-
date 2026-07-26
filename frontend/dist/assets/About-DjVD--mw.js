@@ -1,0 +1,1 @@
+import{O as a,T as s,V as t}from"./element-plus-CJ-gg7iJ.js";import{u as e}from"./index-CKxyQzxz.js";var o={class:"about-container"},u=e({__name:"About",setup:e=>(e,u)=>(t(),a("div",o,[...u[0]||(u[0]=[s("h1",null,"About",-1)])]))},[["__scopeId","data-v-39fcbdab"]]);export{u as default};

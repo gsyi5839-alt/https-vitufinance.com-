@@ -230,6 +230,17 @@ export const releaseFrozenUsdt = (walletAddress, data = {}) => {
 }
 
 /**
+ * Create a manual margin refund for a user.
+ * Backend: POST /api/admin/users/:wallet_address/margin-refund
+ *
+ * @param {string} walletAddress
+ * @param {object} data - { amount: number|string, reason: string }
+ */
+export const refundUserMargin = (walletAddress, data) => {
+  return request.post(`/users/${walletAddress}/margin-refund`, data)
+}
+
+/**
  * Diagnose user balance
  * Returns detailed balance calculation breakdown
  */

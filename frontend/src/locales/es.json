@@ -466,6 +466,7 @@
     "inviteToExchange": "Invita miembros para desbloquear el intercambio WLD",
     "enterAmount": "Por favor ingrese un monto válido",
     "exchangeRecord": "Registro de Intercambio",
+    "marginRefund": "Reembolso de margen",
     "statusPending": "Pendiente",
     "statusCompleted": "Completado",
     "statusFailed": "Fallido",
