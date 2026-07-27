@@ -6045,3 +6045,28 @@ hint: "git config advice.addIgnoredFile false"
 [2026-07-27 02:00:14] 3. Generating file integrity hashes...
 [2026-07-27 02:00:14]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260727_020001.sha256
 [2026-07-27 02:00:14] 4. Checking for git changes...
+[main 6502360a] Auto-backup: 20260727_020001
+ 6 files changed, 205 insertions(+)
+ create mode 100644 backups/critical/hashes_20260727_020001.sha256
+ create mode 100644 backups/daily/db_20260727_020001.sql.gz
+[2026-07-27 02:00:17]    Git commit created
+To github.com:gsyi5839-alt/https-vitufinance.com-.git
+   3dc69212..6502360a  main -> main
+[2026-07-27 02:00:35]    Git push completed
+[2026-07-27 02:00:35] 5. Cleaning up old backups...
+[2026-07-27 02:00:35]    Old backups cleaned (keeping last 7 days)
+[2026-07-27 02:00:35] ==========================================
+[2026-07-27 02:00:35] Backup completed successfully!
+[2026-07-27 02:00:35] ==========================================
+[2026-07-27 02:00:35]    Total backup size: 522M
+[2026-07-27 02:00:35] ==========================================
+[2026-07-28 02:00:01] ==========================================
+[2026-07-28 02:00:01] Starting backup: vitufinance_backup_20260728_020001
+[2026-07-28 02:00:01] ==========================================
+[2026-07-28 02:00:01] 1. Backing up critical source files...
+[2026-07-28 02:00:01]    Critical files backed up: /www/wwwroot/vitufinance.com/backups/critical/critical_20260728_020001.tar.gz
+[2026-07-28 02:00:01] 2. Backing up database...
+[2026-07-28 02:00:13]    Database backed up: /www/wwwroot/vitufinance.com/backups/daily/db_20260728_020001.sql.gz
+[2026-07-28 02:00:13] 3. Generating file integrity hashes...
+[2026-07-28 02:00:13]    Hashes saved: /www/wwwroot/vitufinance.com/backups/critical/hashes_20260728_020001.sha256
+[2026-07-28 02:00:13] 4. Checking for git changes...
