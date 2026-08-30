@@ -13,6 +13,11 @@ backups/
 *.sql.gz
 *.tar.gz
 
+# SQL migrations and operational SQL scripts are source code, not backups.
+!backend/migrations/*.sql
+!backend/sql/*.sql
+!scripts/*.sql
+
 # Logs
 *.log
 
